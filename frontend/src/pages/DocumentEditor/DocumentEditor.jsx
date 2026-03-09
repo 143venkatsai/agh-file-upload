@@ -41,6 +41,8 @@ const buildInitialPage = (imageUrl, pageNumber) => ({
   description: "",
 });
 
+const OUTPUT_IMAGE_QUALITY = 0.8;
+
 const readFileAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -51,20 +53,23 @@ const readFileAsDataUrl = (file) =>
 
 const burnWatermarkToCanvas = (baseImageUrl, watermark) => {
   return new Promise((resolve, reject) => {
-    if (!watermark) return resolve(baseImageUrl);
-
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     const baseImg = new Image();
-    const logoImg = new Image();
-
-    baseImg.crossOrigin = "anonymous"; // Prevents CORS issues with Cloudinary
-    logoImg.crossOrigin = "anonymous";
+    if (!ctx) {
+      return reject(new Error("Failed to initialize canvas for image export."));
+    }
+    const logoImg = watermark ? new Image() : null;
 
     baseImg.onload = () => {
       canvas.width = baseImg.width;
       canvas.height = baseImg.height;
       ctx.drawImage(baseImg, 0, 0);
+
+      // Always export as base64 so backend never receives blob: URLs.
+      if (!watermark || !logoImg) {
+        return resolve(canvas.toDataURL("image/jpeg", OUTPUT_IMAGE_QUALITY));
+      }
 
       logoImg.onload = () => {
         const w = (watermark.widthPercent / 100) * canvas.width;
@@ -78,8 +83,9 @@ const burnWatermarkToCanvas = (baseImageUrl, watermark) => {
         ctx.drawImage(logoImg, -w / 2, -h / 2, w, h);
         ctx.restore();
 
-        resolve(canvas.toDataURL("image/jpeg", 0.9));
+        resolve(canvas.toDataURL("image/jpeg", OUTPUT_IMAGE_QUALITY));
       };
+      logoImg.onerror = () => reject(new Error("Failed to load watermark logo."));
       logoImg.src = watermark.logoData;
     };
     baseImg.onerror = () => reject(new Error("Failed to load base image"));
@@ -215,7 +221,7 @@ const extractFromArrayBuffer = async (arrayBuffer) => {
 
     await page.render({ canvasContext: context, viewport }).promise;
 
-    const imageUrl = canvas.toDataURL("image/jpeg", 0.9);
+    const imageUrl = canvas.toDataURL("image/jpeg", OUTPUT_IMAGE_QUALITY);
     extractedPages.push(buildInitialPage(imageUrl, i));
   }
   setPages(extractedPages);
@@ -350,7 +356,7 @@ const extractFromBlob = async (blob) => {
     );
 
     const payload = {
-      fileId: id,
+      fileId: id || uploadedMeta?.fileId || "",
       mainTitle,
       pages: processedPages,
     };

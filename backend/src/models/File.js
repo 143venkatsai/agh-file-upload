@@ -51,6 +51,22 @@ const fileSchema = new mongoose.Schema(
     },
 
     pages: [pageSchema]
+    ,
+    status: {
+      type: String,
+      enum: ["pending", "completed"],
+      default: "pending"
+    },
+
+    success: {
+      type: Boolean,
+      default: false
+    },
+
+    finalizedAt: {
+      type: Date,
+      default: null
+    }
   },
   { timestamps: true }
 );
