@@ -10,10 +10,12 @@ import {
   ProceedButton,
   RemoveTextButton,
   UploadArea,
+  UploadStatus,
   UploadAreaText,
   UploadIconWrap,
   UploadSubTitle,
   UploadTitle,
+  Spinner,
 } from "./Home.styles";
 
 const Home = () => {
@@ -133,7 +135,11 @@ const Home = () => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <UploadIconWrap type="button" onClick={handlePickFile}>
+          <UploadIconWrap
+            type="button"
+            onClick={handlePickFile}
+            disabled={isUploading}
+          >
             <UploadCloud size={24} />
           </UploadIconWrap>
           <UploadTitle>File Upload</UploadTitle>
@@ -150,8 +156,12 @@ const Home = () => {
           <UploadAreaText>
             Click cloud icon or drag and drop to upload
           </UploadAreaText>
-          {selectedFile && (
-            <UploadAreaText> {selectedFile.name}</UploadAreaText>
+          {selectedFile && <UploadAreaText>{selectedFile.name}</UploadAreaText>}
+          {isUploading && (
+            <UploadStatus>
+              <Spinner aria-hidden="true" />
+              Uploading...
+            </UploadStatus>
           )}
         </UploadArea>
 
@@ -160,7 +170,7 @@ const Home = () => {
           onClick={handleProceed}
           disabled={!uploadedFile || isUploading}
         >
-          Proceed
+          {isUploading ? "Uploading..." : "Proceed"}
         </ProceedButton>
 
         {uploadedFile && (

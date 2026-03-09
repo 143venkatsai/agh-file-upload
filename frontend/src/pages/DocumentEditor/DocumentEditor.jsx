@@ -50,7 +50,7 @@ const readFileAsDataUrl = (file) =>
   });
 
 const DocumentEditor = () => {
-  const { id } = useParams(); // Get :id from URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const file = location.state?.uploadedFile || null;
@@ -92,182 +92,107 @@ const DocumentEditor = () => {
     };
   }, []);
 
-useEffect(() => {
-  const loadAndExtract = async () => {
-    if (!id && !file) return;
+  useEffect(() => {
+    const loadAndExtract = async () => {
+      if (!id && !file) return;
 
-    setIsExtracting(true);
-    setError("");
-    setPages([]);
-    setActivePageIndex(0);
+      setIsExtracting(true);
+      setError("");
+      setPages([]);
+      setActivePageIndex(0);
 
-    try {
-      if (file) {
-        const fileNameLower = file.name.toLowerCase();
-        const isPdf =
-          file.type === "application/pdf" || fileNameLower.endsWith(".pdf");
+      try {
+        if (file) {
+          const fileNameLower = file.name.toLowerCase();
+          const isPdf =
+            file.type === "application/pdf" || fileNameLower.endsWith(".pdf");
 
-        setSourceFileName(file.name || "");
-        setMainTitle((file.name || "Untitled").replace(/\.[^/.]+$/, ""));
+          setSourceFileName(file.name || "");
+          setMainTitle((file.name || "Untitled").replace(/\.[^/.]+$/, ""));
 
-        if (isPdf) {
-          const arrayBuffer = await file.arrayBuffer();
-          await extractFromArrayBuffer(arrayBuffer);
-          return;
+          if (isPdf) {
+            const arrayBuffer = await file.arrayBuffer();
+            await extractFromArrayBuffer(arrayBuffer);
+            return;
+          }
+
+          if (file.type.startsWith("image/")) {
+            const imageUrl = URL.createObjectURL(file);
+            createdObjectUrlsRef.current.push(imageUrl);
+            setPages([buildInitialPage(imageUrl, 1)]);
+            return;
+          }
+
+          throw new Error(
+            "Unsupported file format. Please upload PDF, PNG, JPG, or JPEG.",
+          );
         }
 
-        if (file.type.startsWith("image/")) {
-          const imageUrl = URL.createObjectURL(file);
-          createdObjectUrlsRef.current.push(imageUrl);
-          setPages([buildInitialPage(imageUrl, 1)]);
-          return;
-        }
-
-        throw new Error(
-          "Unsupported file format. Please upload PDF, PNG, JPG, or JPEG.",
+        const response = await fetch(
+          `http://localhost:3000/api/files/get-pdf/${id}`,
         );
+        if (!response.ok)
+          throw new Error(`File not found (${response.status})`);
+        const data = await response.json();
+
+        const fileName = data.originalFileName || data.title || "Untitled";
+        const pdfUrl = data.pdfUrl || data.originalPdf || "";
+        if (!pdfUrl) {
+          throw new Error("PDF URL missing in API response.");
+        }
+
+        setMainTitle(fileName.replace(/\.[^/.]+$/, ""));
+        setSourceFileName(fileName);
+        setUploadedPdfUrl(pdfUrl);
+
+        const pdfResponse = await fetch(pdfUrl);
+        if (!pdfResponse.ok) {
+          throw new Error(`Failed to fetch PDF (${pdfResponse.status})`);
+        }
+        const blob = await pdfResponse.blob();
+        await extractFromBlob(blob);
+      } catch (err) {
+        setError("Failed to load document: " + err.message);
+      } finally {
+        setIsExtracting(false);
       }
+    };
 
-      const response = await fetch(`http://localhost:3000/api/files/get-pdf/${id}`);
-      if (!response.ok) throw new Error(`File not found (${response.status})`);
-      const data = await response.json();
+    loadAndExtract();
+  }, [id, file]);
 
-      const fileName = data.originalFileName || data.title || "Untitled";
-      const pdfUrl = data.pdfUrl || data.originalPdf || "";
-      if (!pdfUrl) {
-        throw new Error("PDF URL missing in API response.");
-      }
+  const extractFromArrayBuffer = async (arrayBuffer) => {
+    const pdfjsLib = await import("pdfjs-dist");
+    const pdfWorkerSrc = (
+      await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
+    ).default;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
-      setMainTitle(fileName.replace(/\.[^/.]+$/, ""));
-      setSourceFileName(fileName);
-      setUploadedPdfUrl(pdfUrl);
+    const pdfDocument = await pdfjsLib.getDocument({ data: arrayBuffer })
+      .promise;
+    const extractedPages = [];
 
-      const pdfResponse = await fetch(pdfUrl);
-      if (!pdfResponse.ok) {
-        throw new Error(`Failed to fetch PDF (${pdfResponse.status})`);
-      }
-      const blob = await pdfResponse.blob();
-      await extractFromBlob(blob);
-    } catch (err) {
-      setError("Failed to load document: " + err.message);
-    } finally {
-      setIsExtracting(false);
+    for (let i = 1; i <= pdfDocument.numPages; i++) {
+      const page = await pdfDocument.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      const imageUrl = canvas.toDataURL("image/jpeg", 0.9);
+      extractedPages.push(buildInitialPage(imageUrl, i));
     }
+    setPages(extractedPages);
   };
 
-  loadAndExtract();
-}, [id, file]);
-
-const extractFromArrayBuffer = async (arrayBuffer) => {
-  const pdfjsLib = await import("pdfjs-dist");
-  const pdfWorkerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
-
-  const pdfDocument = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const extractedPages = [];
-
-  for (let i = 1; i <= pdfDocument.numPages; i++) {
-    const page = await pdfDocument.getPage(i);
-    const viewport = page.getViewport({ scale: 1.5 });
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
-
-    await page.render({ canvasContext: context, viewport }).promise;
-
-    const imageUrl = canvas.toDataURL("image/jpeg", 0.9);
-    extractedPages.push(buildInitialPage(imageUrl, i));
-  }
-  setPages(extractedPages);
-};
-
-// Re-usable extraction logic
-const extractFromBlob = async (blob) => {
-  const data = await blob.arrayBuffer();
-  await extractFromArrayBuffer(data);
-};
-
-  // useEffect(() => {
-  //   const extractPages = async () => {
-  //     if (!file) {
-  //       return;
-  //     }
-
-  //     clearObjectUrls();
-  //     setError("");
-  //     setPages([]);
-  //     setActivePageIndex(0);
-  //     setMainTitle(file.name.replace(/\.[^/.]+$/, ""));
-  //     setIsExtracting(true);
-
-  //     try {
-  //       const fileNameLower = file.name.toLowerCase();
-  //       const isPdf =
-  //         file.type === "application/pdf" || fileNameLower.endsWith(".pdf");
-
-  //       if (isPdf) {
-  //         const pdfjsLib = await import("pdfjs-dist");
-  //         const pdfWorkerSrc = (
-  //           await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
-  //         ).default;
-  //         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
-
-  //         const data = await file.arrayBuffer();
-  //         const pdfDocument = await pdfjsLib.getDocument({ data }).promise;
-  //         const extractedPages = [];
-
-  //         for (
-  //           let pageIndex = 1;
-  //           pageIndex <= pdfDocument.numPages;
-  //           pageIndex += 1
-  //         ) {
-  //           const page = await pdfDocument.getPage(pageIndex);
-  //           const viewport = page.getViewport({ scale: 1.3 });
-  //           const canvas = document.createElement("canvas");
-  //           const context = canvas.getContext("2d");
-  //           if (!context) {
-  //             throw new Error("Failed to initialize canvas rendering context.");
-  //           }
-
-  //           canvas.width = Math.floor(viewport.width);
-  //           canvas.height = Math.floor(viewport.height);
-
-  //           await page.render({
-  //             canvasContext: context,
-  //             viewport,
-  //           }).promise;
-
-  //           const imageUrl = canvas.toDataURL("image/jpeg", 0.9);
-  //           extractedPages.push(buildInitialPage(imageUrl, pageIndex));
-  //         }
-
-  //         setPages(extractedPages);
-  //         return;
-  //       }
-
-  //       if (file.type.startsWith("image/")) {
-  //         const imageUrl = URL.createObjectURL(file);
-  //         createdObjectUrlsRef.current.push(imageUrl);
-  //         setPages([buildInitialPage(imageUrl, 1)]);
-  //         return;
-  //       }
-
-  //       setError(
-  //         "Unsupported file format. Please upload PDF, PNG, JPG, or JPEG.",
-  //       );
-  //     } catch (extractError) {
-  //       setError(
-  //         extractError.message || "Failed to process the uploaded file.",
-  //       );
-  //     } finally {
-  //       setIsExtracting(false);
-  //     }
-  //   };
-
-  //   extractPages();
-  // }, [file]);
+  const extractFromBlob = async (blob) => {
+    const data = await blob.arrayBuffer();
+    await extractFromArrayBuffer(data);
+  };
 
   const pageCounter = useMemo(() => {
     if (!pages.length) {
@@ -399,9 +324,12 @@ const extractFromBlob = async (blob) => {
         })),
       };
 
-      // Ready for API integration.
       console.log("Document payload", payload);
-      navigate("/", { replace: true });
+      navigate("/submitted-files", {
+        state: {
+          firstImage: pages[0]?.imageUrl || "",
+        },
+      });
     } catch (submitError) {
       setError(submitError.message || "Failed to submit document.");
     } finally {
@@ -508,7 +436,8 @@ const extractFromBlob = async (blob) => {
 
           <WatermarkControls>
             <RangeGroup>
-              Opacity <RangeValue>{Math.round(watermarkOpacity * 100)}%</RangeValue>
+              Opacity{" "}
+              <RangeValue>{Math.round(watermarkOpacity * 100)}%</RangeValue>
               <RangeInput
                 type="range"
                 min="0.1"
