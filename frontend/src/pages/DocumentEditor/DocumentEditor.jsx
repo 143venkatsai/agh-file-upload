@@ -89,7 +89,6 @@ const burnWatermarkToCanvas = (baseImageUrl, watermark) => {
 
 const DocumentEditor = () => {
   const { id } = useParams(); 
-  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const file = location.state?.uploadedFile || null;
@@ -228,91 +227,10 @@ const DocumentEditor = () => {
     setPages(extractedPages);
   };
 
-// Re-usable extraction logic
 const extractFromBlob = async (blob) => {
   const data = await blob.arrayBuffer();
   await extractFromArrayBuffer(data);
 };
-
-  // useEffect(() => {
-  //   const extractPages = async () => {
-  //     if (!file) {
-  //       return;
-  //     }
-
-  //     clearObjectUrls();
-  //     setError("");
-  //     setPages([]);
-  //     setActivePageIndex(0);
-  //     setMainTitle(file.name.replace(/\.[^/.]+$/, ""));
-  //     setIsExtracting(true);
-
-  //     try {
-  //       const fileNameLower = file.name.toLowerCase();
-  //       const isPdf =
-  //         file.type === "application/pdf" || fileNameLower.endsWith(".pdf");
-
-  //       if (isPdf) {
-  //         const pdfjsLib = await import("pdfjs-dist");
-  //         const pdfWorkerSrc = (
-  //           await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
-  //         ).default;
-  //         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
-
-  //         const data = await file.arrayBuffer();
-  //         const pdfDocument = await pdfjsLib.getDocument({ data }).promise;
-  //         const extractedPages = [];
-
-  //         for (
-  //           let pageIndex = 1;
-  //           pageIndex <= pdfDocument.numPages;
-  //           pageIndex += 1
-  //         ) {
-  //           const page = await pdfDocument.getPage(pageIndex);
-  //           const viewport = page.getViewport({ scale: 1.3 });
-  //           const canvas = document.createElement("canvas");
-  //           const context = canvas.getContext("2d");
-  //           if (!context) {
-  //             throw new Error("Failed to initialize canvas rendering context.");
-  //           }
-
-  //           canvas.width = Math.floor(viewport.width);
-  //           canvas.height = Math.floor(viewport.height);
-
-  //           await page.render({
-  //             canvasContext: context,
-  //             viewport,
-  //           }).promise;
-
-  //           const imageUrl = canvas.toDataURL("image/jpeg", 0.9);
-  //           extractedPages.push(buildInitialPage(imageUrl, pageIndex));
-  //         }
-
-  //         setPages(extractedPages);
-  //         return;
-  //       }
-
-  //       if (file.type.startsWith("image/")) {
-  //         const imageUrl = URL.createObjectURL(file);
-  //         createdObjectUrlsRef.current.push(imageUrl);
-  //         setPages([buildInitialPage(imageUrl, 1)]);
-  //         return;
-  //       }
-
-  //       setError(
-  //         "Unsupported file format. Please upload PDF, PNG, JPG, or JPEG.",
-  //       );
-  //     } catch (extractError) {
-  //       setError(
-  //         extractError.message || "Failed to process the uploaded file.",
-  //       );
-  //     } finally {
-  //       setIsExtracting(false);
-  //     }
-  //   };
-
-  //   extractPages();
-  // }, [file]);
 
   const pageCounter = useMemo(() => {
     if (!pages.length) {
