@@ -61,7 +61,8 @@ export const UploadIconWrap = styled.button`
       ? props.theme.body.secondary.base
       : props.theme.body.secondary.base};
   border: 1px solid ${(props) => (props.theme.mode === "DARK" ? "#2a2a2a" : "#1a1a1a")};
-  cursor: pointer;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
 `;
 
 export const UploadTitle = styled.h2`
@@ -81,6 +82,30 @@ export const UploadAreaText = styled.p`
   margin: 11.2px 0 0;
   font-size: 14.08px;
   color: ${(props) => props.theme.text.secondary};
+`;
+
+export const UploadStatus = styled.div`
+  margin-top: 11.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.08px;
+  color: ${(props) => props.theme.text.secondary};
+`;
+
+export const Spinner = styled.span`
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid ${(props) => props.theme.border.primary};
+  border-top-color: ${(props) => props.theme.primary.base};
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 `;
 
 export const FileInput = styled.input`

@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Home from "./pages/Home/Home";
 import DocumentEditor from "./pages/DocumentEditor/DocumentEditor";
+import SubmittedFiles from "./pages/SubmittedFiles/SubmittedFiles";
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -182,6 +183,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/document-editor/:id" element={<DocumentEditor />} />
+          <Route path="/submitted-files" element={<SubmittedFiles />} />
         </Routes>
       </Router>
     </ThemeProvider>
