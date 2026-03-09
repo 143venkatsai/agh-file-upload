@@ -88,7 +88,7 @@ const burnWatermarkToCanvas = (baseImageUrl, watermark) => {
 };
 
 const DocumentEditor = () => {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const file = location.state?.uploadedFile || null;
@@ -227,10 +227,10 @@ const DocumentEditor = () => {
     setPages(extractedPages);
   };
 
-const extractFromBlob = async (blob) => {
-  const data = await blob.arrayBuffer();
-  await extractFromArrayBuffer(data);
-};
+  const extractFromBlob = async (blob) => {
+    const data = await blob.arrayBuffer();
+    await extractFromArrayBuffer(data);
+  };
 
   const pageCounter = useMemo(() => {
     if (!pages.length) {
@@ -330,39 +330,102 @@ const extractFromBlob = async (blob) => {
   const handleSubmit = async () => {
     if (!pages.length || isExtracting || isSubmitting) return;
 
-  setIsSubmitting(true);
-  setError("");
+    setIsSubmitting(true);
+    setError("");
 
-  try {
-    const processedPages = await Promise.all(
-      pages.map(async (page) => {
-        const finalImageData = await burnWatermarkToCanvas(
-          page.imageUrl,
-          watermarkLogoDataUrl ? {
-            logoData: watermarkLogoDataUrl,
-            opacity: watermarkOpacity,
-            widthPercent: watermarkWidthPercent,
-            position: { xPercent: watermarkXPercent, yPercent: watermarkYPercent },
-          } : null
-        );
+    try {
+      const processedPages = await Promise.all(
+        pages.map(async (page) => {
+          const finalImageData = await burnWatermarkToCanvas(
+            page.imageUrl,
+            watermarkLogoDataUrl
+              ? {
+                  logoData: watermarkLogoDataUrl,
+                  opacity: watermarkOpacity,
+                  widthPercent: watermarkWidthPercent,
+                  position: {
+                    xPercent: watermarkXPercent,
+                    yPercent: watermarkYPercent,
+                  },
+                }
+              : null,
+          );
 
-        return {
-          pageNumber: page.pageNumber,
-          pageTitle: page.pageTitle,
-          description: page.description,
-          imageData: page.imageUrl,
-          isActive: index === activePageIndex,
-        })),
+          return {
+            pageNumber: page.pageNumber,
+            pageTitle: page.pageTitle,
+            description: page.description,
+            imageData: finalImageData,
+          };
+        }),
+      );
+
+      const payload = {
+        fileId: id,
+        mainTitle,
+        pages: processedPages,
       };
 
-      // Ready for API integration.
-      console.log("Document payload", payload);
+      // 3. Send to your Node.js Backend Finalize Route
+      const response = await fetch("http://localhost:3000/api/files/finalize", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Final submission failed.");
+      }
+
       navigate("/", { replace: true });
     } catch (submitError) {
       setError(submitError.message || "Failed to submit document.");
     } finally {
       setIsSubmitting(false);
     }
+    // if (!pages.length || isExtracting) {
+    //   return;
+    // }
+
+    // setIsSubmitting(true);
+    // setError("");
+
+    // try {
+    //   const payload = {
+    //     mainTitle,
+    //     fileId: id || uploadedMeta?.fileId || "",
+    //     uploadedPdfUrl: uploadedMeta?.pdfUrl || uploadedPdfUrl || "",
+    //     sourceFileName: sourceFileName || "",
+    //     watermark: watermarkLogoDataUrl
+    //       ? {
+    //           logoName: watermarkLogoName,
+    //           logoData: watermarkLogoDataUrl,
+    //           opacity: watermarkOpacity,
+    //           widthPercent: watermarkWidthPercent,
+    //           position: {
+    //             xPercent: watermarkXPercent,
+    //             yPercent: watermarkYPercent,
+    //           },
+    //         }
+    //       : null,
+    //     pages: pages.map((page, index) => ({
+    //       pageNumber: page.pageNumber,
+    //       pageTitle: page.pageTitle,
+    //       description: page.description,
+    //       imageData: page.imageUrl,
+    //       isActive: index === activePageIndex,
+    //     })),
+    //   };
+
+    //   // Ready for API integration.
+    //   console.log("Document payload", payload);
+    //   navigate("/", { replace: true });
+    // } catch (submitError) {
+    //   setError(submitError.message || "Failed to submit document.");
+    // } finally {
+    //   setIsSubmitting(false);
+    // }
   };
 
   if (!id) {

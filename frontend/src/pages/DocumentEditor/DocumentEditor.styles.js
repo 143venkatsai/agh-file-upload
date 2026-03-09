@@ -51,7 +51,9 @@ export const MainTitleField = styled.input`
   ${fieldBase}
   border-color: ${(props) => props.theme.border.primary};
   background: ${(props) =>
-    props.theme.mode === "DARK" ? props.theme.body.primary.base : props.theme.body.primary.base};
+    props.theme.mode === "DARK"
+      ? props.theme.body.primary.base
+      : props.theme.body.primary.base};
   color: ${(props) => props.theme.text.primary};
   padding: 12px 14px;
   font-size: 24px;
@@ -72,7 +74,9 @@ export const Preview = styled.div`
   border: 1px solid ${(props) => props.theme.border.primary};
   overflow: hidden;
   background: ${(props) =>
-    props.theme.mode === "DARK" ? props.theme.body.primary.base : props.theme.body.primary.base};
+    props.theme.mode === "DARK"
+      ? props.theme.body.primary.base
+      : props.theme.body.primary.base};
 
   @media (max-width: 900px) {
     min-height: 300px;
@@ -131,7 +135,9 @@ export const Input = styled.input`
   ${fieldBase}
   border-color: ${(props) => props.theme.border.primary};
   background: ${(props) =>
-    props.theme.mode === "DARK" ? props.theme.body.primary.base : props.theme.body.primary.base};
+    props.theme.mode === "DARK"
+      ? props.theme.body.primary.base
+      : props.theme.body.primary.base};
   color: ${(props) => props.theme.text.primary};
   padding: 12px 14px;
   margin-top: 0;
@@ -148,7 +154,9 @@ export const DescriptionField = styled.textarea`
   ${fieldBase}
   border-color: ${(props) => props.theme.border.primary};
   background: ${(props) =>
-    props.theme.mode === "DARK" ? props.theme.body.primary.base : props.theme.body.primary.base};
+    props.theme.mode === "DARK"
+      ? props.theme.body.primary.base
+      : props.theme.body.primary.base};
   color: ${(props) => props.theme.text.primary};
   padding: 12px 14px;
   margin-top: 0;
@@ -177,10 +185,13 @@ export const Thumbnail = styled.button`
   min-width: 78px;
   border-radius: 14px;
   border: 2px solid
-    ${(props) => (props.$active ? props.theme.primary.base : props.theme.border.primary)};
+    ${(props) =>
+      props.$active ? props.theme.primary.base : props.theme.border.primary};
   padding: 6px;
   background: ${(props) =>
-    props.theme.mode === "DARK" ? props.theme.body.primary.base : props.theme.body.primary.base};
+    props.theme.mode === "DARK"
+      ? props.theme.body.primary.base
+      : props.theme.body.primary.base};
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -326,4 +337,3 @@ export const RangeValue = styled.span`
 export const RangeInput = styled.input`
   width: 100%;
 `;
-
