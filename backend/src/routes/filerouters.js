@@ -5,6 +5,7 @@ const upload = require("../middlewares/uploade");
 const {
   uploadPdf,
   getFileById,
+  finalizeFile,
   deleteFile
 } = require("../controllers/fileController");
 
@@ -17,6 +18,7 @@ router.post(
   uploadPdf
 );
 router.get("/get-pdf/:id", getFileById);
+router.put('/finalize', finalizeFile);
 router.delete("/:id", deleteFile);
 
 

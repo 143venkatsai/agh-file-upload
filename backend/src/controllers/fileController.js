@@ -47,6 +47,39 @@ const getFileById = async (req, res) => {
   }
 };
 
+const finalizeFile = async (req, res) => {
+  try {
+    const { fileId, mainTitle, pages } = req.body;
+
+    const processedPages = await Promise.all(
+      pages.map(async (page) => {
+        const uploadRes = await cloudinary.uploader.upload(page.imageData, {
+          folder: "watermarked_pages",
+        });
+
+        return {
+          pageNo: page.pageNumber,
+          imageUrl: uploadRes.secure_url,
+          publicId: uploadRes.public_id,
+          title: page.pageTitle,
+          description: page.description,
+        };
+      })
+    );
+
+    await File.findByIdAndUpdate(fileId, {
+      title: mainTitle,
+      pages: processedPages,
+      status: "completed",
+      success: true,
+    });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const deleteFile = async (req, res) => {
   try {
     const file = await File.findById(req.params.id);
@@ -74,5 +107,6 @@ const deleteFile = async (req, res) => {
 module.exports = {
   uploadPdf,
   getFileById,
+  finalizeFile,
   deleteFile,
 };
