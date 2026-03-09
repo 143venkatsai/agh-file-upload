@@ -1,22 +1,38 @@
 import React, { useRef, useState } from "react";
 import { ArrowLeft, UploadCloud } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   BackButton,
   CardContainer,
   FileInput,
+  HeaderBlock,
   HomeContainer,
   MessageText,
   ProceedButton,
   RemoveTextButton,
+  SelectedFileCard,
+  SelectedFileMeta,
+  SelectedFileName,
+  SelectedFileSize,
+  SelectFilesButton,
   UploadArea,
   UploadStatus,
   UploadAreaText,
+  UploadHintText,
+  UploadPageTitle,
   UploadIconWrap,
   UploadSubTitle,
   UploadTitle,
   Spinner,
 } from "./Home.styles";
+
+const formatFileSize = (bytes = 0) => {
+  if (!bytes) return "0 KB";
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -30,9 +46,11 @@ const Home = () => {
   const [error, setError] = useState("");
 
   const uploadUrl = "http://localhost:3000/api/files/upload";
+
   const uploadFile = async (file) => {
     if (!file) {
       setError("Please choose a file first.");
+      toast.error("Please choose a file first.");
       return;
     }
 
@@ -61,8 +79,10 @@ const Home = () => {
         pdfUrl: responseData.pdfUrl || "",
       });
       setMessage("File uploaded successfully.");
+      toast.success("File uploaded successfully.");
     } catch (uploadError) {
       setError(uploadError.message || "Upload failed. Please try again.");
+      toast.error(uploadError.message || "Upload failed. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -90,7 +110,6 @@ const Home = () => {
   const handleDrop = async (event) => {
     event.preventDefault();
     setIsDragActive(false);
-
     const file = event.dataTransfer.files?.[0] || null;
     await uploadFile(file);
   };
@@ -104,9 +123,6 @@ const Home = () => {
   };
 
   const handleProceed = () => {
-    // if (!uploadedFile || isUploading) {
-    //   return;
-    // }
     if (!uploadedMeta?.fileId) return;
     navigate(`/document-editor/${uploadedMeta.fileId}`, {
       state: {
@@ -114,21 +130,22 @@ const Home = () => {
         uploadedMeta,
       },
     });
-    // navigate("/document-editor", {
-    //   state: {
-    //     uploadedFile,
-    //     uploadedMeta,
-    //   },
-    // });
   };
 
   return (
     <HomeContainer>
+      <UploadPageTitle>Upload Files Here</UploadPageTitle>
       <CardContainer>
         <BackButton>
           <ArrowLeft size={16} />
           Back
         </BackButton>
+
+        <HeaderBlock>
+          <UploadTitle>File Upload</UploadTitle>
+          <UploadSubTitle>Add your documents to the queue</UploadSubTitle>
+        </HeaderBlock>
+
         <UploadArea
           $isDragActive={isDragActive}
           onDragOver={handleDragOver}
@@ -140,12 +157,11 @@ const Home = () => {
             onClick={handlePickFile}
             disabled={isUploading}
           >
-            <UploadCloud size={24} />
+            <UploadCloud size={34} />
           </UploadIconWrap>
-          <UploadTitle>File Upload</UploadTitle>
-          <UploadSubTitle>
-            Drag and drop your files here or browse to upload
-          </UploadSubTitle>
+          <UploadAreaText>Drag and drop your files here</UploadAreaText>
+          <UploadHintText>or click to browse files from your computer</UploadHintText>
+
           <FileInput
             id="file-upload-input"
             ref={fileInputRef}
@@ -153,10 +169,9 @@ const Home = () => {
             onChange={handleFileChange}
             accept=".jpg,.jpeg,.png,.pdf,.mp4"
           />
-          <UploadAreaText>
-            Click cloud icon or drag and drop to upload
-          </UploadAreaText>
-          {selectedFile && <UploadAreaText>{selectedFile.name}</UploadAreaText>}
+          <SelectFilesButton type="button" onClick={handlePickFile}>
+            Select Files
+          </SelectFilesButton>
           {isUploading && (
             <UploadStatus>
               <Spinner aria-hidden="true" />
@@ -165,6 +180,18 @@ const Home = () => {
           )}
         </UploadArea>
 
+        {selectedFile && (
+          <SelectedFileCard>
+            <SelectedFileMeta>
+              <SelectedFileName>{selectedFile.name}</SelectedFileName>
+              <SelectedFileSize>{formatFileSize(selectedFile.size)}</SelectedFileSize>
+            </SelectedFileMeta>
+            <RemoveTextButton type="button" onClick={handleRemoveUploadedFile}>
+              x
+            </RemoveTextButton>
+          </SelectedFileCard>
+        )}
+
         <ProceedButton
           type="button"
           onClick={handleProceed}
@@ -172,15 +199,6 @@ const Home = () => {
         >
           {isUploading ? "Uploading..." : "Proceed"}
         </ProceedButton>
-
-        {uploadedFile && (
-          <UploadAreaText>
-            Uploaded: {uploadedFile.name}{" "}
-            <RemoveTextButton type="button" onClick={handleRemoveUploadedFile}>
-              remove
-            </RemoveTextButton>
-          </UploadAreaText>
-        )}
 
         {message && <MessageText $isError={false}>{message}</MessageText>}
         {error && <MessageText $isError>{error}</MessageText>}

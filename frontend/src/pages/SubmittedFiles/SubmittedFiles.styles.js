@@ -1,15 +1,20 @@
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 
 export const Page = styled.div`
   min-height: 100vh;
   width: 100%;
-  padding: 14px 16px 28px;
+  overflow-x: hidden;
+  padding: 14px 12px 28px;
   background: ${(props) => props.theme.body.secondary.base};
+
+  @media (min-width: 681px) {
+    padding: 14px 16px 28px;
+  }
 `;
 
 export const Container = styled.div`
   width: 100%;
-  max-width: 640px;
+  max-width: 1280px;
   margin: 0 auto;
   display: grid;
   gap: 10px;
@@ -61,6 +66,7 @@ export const FileCard = styled.div`
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
+    width: 100%;
   }
 `;
 
@@ -69,6 +75,7 @@ export const FilePrimary = styled.div`
   align-items: center;
   gap: 12px;
   min-width: 0;
+  width: 100%;
 `;
 
 export const FileIconBox = styled.div`
@@ -89,13 +96,11 @@ export const FileName = styled.h3`
   line-height: 1.1;
   font-weight: 700;
   color: ${(props) => (props.theme.mode === "DARK" ? "#cfdfff" : "#071f4a")};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   @media (max-width: 680px) {
     font-size: 16px;
-    white-space: normal;
   }
 `;
 
@@ -108,86 +113,26 @@ export const FileMeta = styled.p`
 export const ActionArea = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   flex-shrink: 0;
 
   @media (max-width: 680px) {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
   }
-`;
-
-const previewVariantStyles = {
-  illustration: css`
-    background:
-      radial-gradient(circle at 25% 65%, #d49664 7px, transparent 8px),
-      radial-gradient(circle at 42% 58%, #efc695 7px, transparent 8px),
-      radial-gradient(circle at 56% 65%, #5794a8 7px, transparent 8px),
-      radial-gradient(circle at 45% 32%, #91bfca 7px, transparent 8px),
-      radial-gradient(circle at 60% 39%, #e3b584 7px, transparent 8px),
-      radial-gradient(circle at 32% 42%, #dbb88f 8px, transparent 9px), #efe9dd;
-  `,
-  sunset: css`
-    background: linear-gradient(180deg, #ef8209 0%, #cd672d 55%, #8f4d7d 100%);
-  `,
-  wave: css`
-    background:
-      radial-gradient(
-        circle at 20% 20%,
-        #3c85b7 0,
-        #d5e3ef 38%,
-        transparent 56%
-      ),
-      repeating-radial-gradient(
-        circle at 70% 55%,
-        rgba(47, 121, 177, 0.2) 0 2px,
-        transparent 2px 5px
-      ),
-      #f5f8fb;
-  `,
-  darkWave: css`
-    background:
-      radial-gradient(
-        circle at 10% 30%,
-        rgba(49, 80, 102, 0.4) 0 18%,
-        transparent 35%
-      ),
-      repeating-radial-gradient(
-        circle at 60% 70%,
-        rgba(129, 162, 182, 0.22) 0 2px,
-        transparent 2px 6px
-      ),
-      #0f1d25;
-  `,
-};
-
-export const PreviewBox = styled.div`
-  width: 90px;
-  height: 42px;
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid ${(props) => props.theme.border.primary};
-  ${(props) =>
-    previewVariantStyles[props.$variant] || previewVariantStyles.sunset}
-`;
-
-export const PreviewImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 `;
 
 export const RemoveButton = styled.button`
   border: 1px solid transparent;
   border-radius: 8px;
   background: ${(props) =>
-    props.theme.mode === "DARK" ? "#3e4348" : "#edf1f5"};
-  color: ${(props) => (props.theme.mode === "DARK" ? "#d9e2ee" : "#445c79")};
+    props.theme.mode === "DARK" ? "#FFE6E6" : "#e62f22"};
+  color: ${(props) => (props.theme.mode === "DARK" ? "#323f4b" : "#ffffff")};
   font-size: 12px;
   font-weight: 600;
   padding: 9px 14px;
-  cursor: pointer;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  opacity: ${(props) => (props.disabled ? 0.65 : 1)};
 `;
 
 export const EmptyText = styled.p`

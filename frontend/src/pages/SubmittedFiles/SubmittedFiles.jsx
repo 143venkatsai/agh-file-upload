@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, FileText, Upload } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ActionArea,
   FileIconBox,
@@ -10,8 +10,6 @@ import {
   Container,
   EmptyText,
   FileCard,
-  PreviewBox,
-  PreviewImage,
   Page,
   RemoveButton,
   UploadButton,
@@ -19,49 +17,111 @@ import {
   TopBar,
 } from "./SubmittedFiles.styles";
 
+const API_BASE_URL = "http://localhost:3000/api/files";
+
 const DUMMY_FILES = [
   {
     id: "dummy-1",
     name: "Project Proposal.pdf",
-    meta: "Modified 2h ago · 4.2 MB",
-    previewType: "illustration",
+    meta: "Modified 2h ago - 4.2 MB",
+    isDummy: true,
   },
   {
     id: "dummy-2",
     name: "Brand_Asset_v2.png",
-    meta: "Modified Yesterday · 12.8 MB",
-    previewType: "sunset",
+    meta: "Modified Yesterday - 12.8 MB",
+    isDummy: true,
   },
   {
     id: "dummy-3",
     name: "Q4_Financial_Report.csv",
-    meta: "Modified Oct 12 · 856 KB",
-    previewType: "wave",
+    meta: "Modified Oct 12 - 856 KB",
+    isDummy: true,
   },
   {
     id: "dummy-4",
     name: "Tutorial_Final_Cut.mp4",
-    meta: "Modified Oct 05 · 245.0 MB",
-    previewType: "darkWave",
+    meta: "Modified Oct 05 - 245.0 MB",
+    isDummy: true,
   },
 ];
 
+const formatModifiedText = (dateValue) => {
+  if (!dateValue) return "Modified recently";
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "Modified recently";
+  return `Modified ${date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  })}`;
+};
+
 const SubmittedFiles = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const firstImage = location.state?.firstImage || "";
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState("");
+  const [error, setError] = useState("");
 
-  const initialItems = useMemo(() => {
-    const firstItem = DUMMY_FILES[0];
-    return DUMMY_FILES.map((item) =>
-      item.id === firstItem.id ? { ...item, thumbnail: firstImage } : item,
-    );
-  }, [firstImage]);
+  useEffect(() => {
+    const fetchFiles = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const response = await fetch(`${API_BASE_URL}/get-pdf`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch files (${response.status})`);
+        }
+        const result = await response.json();
+        const apiFiles = Array.isArray(result?.data) ? result.data : [];
 
-  const [items, setItems] = useState(initialItems);
+        if (!apiFiles.length) {
+          setItems(DUMMY_FILES);
+          return;
+        }
 
-  const handleRemove = (id) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
+        const mapped = apiFiles.map((file) => ({
+          id: file._id,
+          name: file.title || "Untitled file",
+          meta: formatModifiedText(file.updatedAt),
+          isDummy: false,
+        }));
+        setItems(mapped);
+      } catch (fetchError) {
+        setError(fetchError.message || "Failed to load files.");
+        setItems(DUMMY_FILES);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFiles();
+  }, []);
+
+  const handleRemove = async (item) => {
+    if (item.isDummy) {
+      setItems((prevItems) => prevItems.filter((entry) => entry.id !== item.id));
+      return;
+    }
+
+    try {
+      setDeletingId(item.id);
+      setError("");
+      const response = await fetch(`${API_BASE_URL}/${item.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete failed (${response.status})`);
+      }
+
+      setItems((prevItems) => prevItems.filter((entry) => entry.id !== item.id));
+    } catch (deleteError) {
+      setError(deleteError.message || "Failed to delete file.");
+    } finally {
+      setDeletingId("");
+    }
   };
 
   return (
@@ -91,21 +151,22 @@ const SubmittedFiles = () => {
             </FilePrimary>
 
             <ActionArea>
-              <PreviewBox $variant={item.previewType}>
-                {item.thumbnail && (
-                  <PreviewImage src={item.thumbnail} alt={`${item.name} preview`} />
-                )}
-              </PreviewBox>
-              <RemoveButton type="button" onClick={() => handleRemove(item.id)}>
-                Remove
+              <RemoveButton
+                type="button"
+                onClick={() => handleRemove(item)}
+                disabled={deletingId === item.id}
+              >
+                {deletingId === item.id ? "Removing..." : "Remove"}
               </RemoveButton>
             </ActionArea>
           </FileCard>
         ))}
 
-        {!items.length && (
+        {!isLoading && !items.length && (
           <EmptyText>No cards left. Use Upload File to add more.</EmptyText>
         )}
+        {isLoading && <EmptyText>Loading files...</EmptyText>}
+        {error && <EmptyText>{error}</EmptyText>}
       </Container>
     </Page>
   );

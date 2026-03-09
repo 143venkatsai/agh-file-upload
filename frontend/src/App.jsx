@@ -2,6 +2,8 @@ import React from "react";
 import { ThemeProvider, createGlobalStyle } from "styled-components";
 import { LIGHT_THEME, DARK_THEME } from "./theme";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { useSelector } from "react-redux";
 import Home from "./pages/Home/Home";
@@ -186,6 +188,7 @@ function App() {
           <Route path="/submitted-files" element={<SubmittedFiles />} />
         </Routes>
       </Router>
+      <ToastContainer position="top-right" autoClose={2500} />
     </ThemeProvider>
   );
 }

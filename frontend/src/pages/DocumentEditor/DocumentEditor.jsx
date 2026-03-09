@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   ActionRow,
   BackButton,
@@ -85,7 +86,8 @@ const burnWatermarkToCanvas = (baseImageUrl, watermark) => {
 
         resolve(canvas.toDataURL("image/jpeg", OUTPUT_IMAGE_QUALITY));
       };
-      logoImg.onerror = () => reject(new Error("Failed to load watermark logo."));
+      logoImg.onerror = () =>
+        reject(new Error("Failed to load watermark logo."));
       logoImg.src = watermark.logoData;
     };
     baseImg.onerror = () => reject(new Error("Failed to load base image"));
@@ -196,7 +198,9 @@ const DocumentEditor = () => {
         const blob = await pdfResponse.blob();
         await extractFromBlob(blob);
       } catch (err) {
-        setError("Failed to load document: " + err.message);
+        const errorMessage = "Failed to load document: " + err.message;
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setIsExtracting(false);
       }
@@ -227,11 +231,11 @@ const DocumentEditor = () => {
 
       await page.render({ canvasContext: context, viewport }).promise;
 
-    const imageUrl = canvas.toDataURL("image/jpeg", OUTPUT_IMAGE_QUALITY);
-    extractedPages.push(buildInitialPage(imageUrl, i));
-  }
-  setPages(extractedPages);
-};
+      const imageUrl = canvas.toDataURL("image/jpeg", OUTPUT_IMAGE_QUALITY);
+      extractedPages.push(buildInitialPage(imageUrl, i));
+    }
+    setPages(extractedPages);
+  };
 
   const extractFromBlob = async (blob) => {
     const data = await blob.arrayBuffer();
@@ -277,7 +281,10 @@ const DocumentEditor = () => {
       setWatermarkLogoName(logoFile.name);
       setError("");
     } catch (logoError) {
-      setError(logoError.message || "Failed to load watermark logo.");
+      const logoErrorMessage =
+        logoError.message || "Failed to load watermark logo.";
+      setError(logoErrorMessage);
+      toast.error(logoErrorMessage);
     }
   };
 
@@ -366,13 +373,12 @@ const DocumentEditor = () => {
         }),
       );
 
-    const payload = {
-      fileId: id,
-      mainTitle,
-      pages: processedPages,
-    };
+      const payload = {
+        fileId: id,
+        mainTitle,
+        pages: processedPages,
+      };
 
-      // 3. Send to your Node.js Backend Finalize Route
       const response = await fetch("http://localhost:3000/api/files/finalize", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -384,54 +390,16 @@ const DocumentEditor = () => {
         throw new Error(errorData.message || "Final submission failed.");
       }
 
-      navigate("/", { replace: true });
+      toast.success("Document submitted successfully.");
+      navigate("/submitted-files", { replace: true });
     } catch (submitError) {
-      setError(submitError.message || "Failed to submit document.");
+      const submitErrorMessage =
+        submitError.message || "Failed to submit document.";
+      setError(submitErrorMessage);
+      toast.error(submitErrorMessage);
     } finally {
       setIsSubmitting(false);
     }
-    // if (!pages.length || isExtracting) {
-    //   return;
-    // }
-
-    // setIsSubmitting(true);
-    // setError("");
-
-    // try {
-    //   const payload = {
-    //     mainTitle,
-    //     fileId: id || uploadedMeta?.fileId || "",
-    //     uploadedPdfUrl: uploadedMeta?.pdfUrl || uploadedPdfUrl || "",
-    //     sourceFileName: sourceFileName || "",
-    //     watermark: watermarkLogoDataUrl
-    //       ? {
-    //           logoName: watermarkLogoName,
-    //           logoData: watermarkLogoDataUrl,
-    //           opacity: watermarkOpacity,
-    //           widthPercent: watermarkWidthPercent,
-    //           position: {
-    //             xPercent: watermarkXPercent,
-    //             yPercent: watermarkYPercent,
-    //           },
-    //         }
-    //       : null,
-    //     pages: pages.map((page, index) => ({
-    //       pageNumber: page.pageNumber,
-    //       pageTitle: page.pageTitle,
-    //       description: page.description,
-    //       imageData: page.imageUrl,
-    //       isActive: index === activePageIndex,
-    //     })),
-    //   };
-
-    //   // Ready for API integration.
-    //   console.log("Document payload", payload);
-    //   navigate("/", { replace: true });
-    // } catch (submitError) {
-    //   setError(submitError.message || "Failed to submit document.");
-    // } finally {
-    //   setIsSubmitting(false);
-    // }
   };
 
   if (!id) {
@@ -612,7 +580,6 @@ const DocumentEditor = () => {
             disabled={isExtracting || isSubmitting || !pages.length}
             onClick={handleSubmit}
           >
-            {isSubmitting ? <Loader2 size={16} /> : <Check size={16} />}
             {isSubmitting ? "Submitting..." : "Submit"}
           </SubmitButton>
         </FooterActions>

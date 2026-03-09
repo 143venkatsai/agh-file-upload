@@ -7,11 +7,14 @@ const uploadPdf = async (req, res) => {
     const file = req.file || req.files?.pdf?.[0] || req.files?.file?.[0];
     if (!file) {
       return res.status(400).json({
-        message: "No file uploaded. Use multipart/form-data with field name 'pdf' or 'file'.",
+        message:
+          "No file uploaded. Use multipart/form-data with field name 'pdf' or 'file'.",
       });
     }
     if (!file.buffer) {
-      return res.status(400).json({ message: "Uploaded file buffer is missing." });
+      return res
+        .status(400)
+        .json({ message: "Uploaded file buffer is missing." });
     }
 
     const result = await new Promise((resolve, reject) => {
@@ -75,7 +78,9 @@ const finalizeFile = async (req, res) => {
       return res.status(400).json({ message: "Invalid fileId format" });
     }
     if (!Array.isArray(pages) || pages.length === 0) {
-      return res.status(400).json({ message: "pages must be a non-empty array" });
+      return res
+        .status(400)
+        .json({ message: "pages must be a non-empty array" });
     }
 
     const existingFile = await File.findById(fileId);
@@ -86,7 +91,9 @@ const finalizeFile = async (req, res) => {
     const processedPages = await Promise.all(
       pages.map(async (page) => {
         if (!page?.imageData || typeof page.imageData !== "string") {
-          throw new Error(`Invalid imageData for page ${page?.pageNumber || "unknown"}`);
+          throw new Error(
+            `Invalid imageData for page ${page?.pageNumber || "unknown"}`,
+          );
         }
 
         const uploadRes = await cloudinary.uploader.upload(page.imageData, {
@@ -100,7 +107,7 @@ const finalizeFile = async (req, res) => {
           title: page.pageTitle,
           description: page.description,
         };
-      })
+      }),
     );
 
     existingFile.title = (mainTitle || "").trim();
@@ -116,6 +123,7 @@ const finalizeFile = async (req, res) => {
       status: updatedFile.status,
       finalizedAt: updatedFile.finalizedAt,
       pageCount: updatedFile.pages.length,
+      message: "File Uploaded Successfully",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -124,7 +132,9 @@ const finalizeFile = async (req, res) => {
 const getPdf = async (req, res) => {
   try {
     const data = await File.find({}).sort({ updatedAt: -1 });
-    res.status(200).json({ data, message: "Data fetch successfully", success: true });
+    res
+      .status(200)
+      .json({ data, message: "Data fetch successfully", success: true });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -141,6 +151,14 @@ const deleteFile = async (req, res) => {
     await cloudinary.uploader.destroy(file.pdfPublicId, {
       resource_type: "raw",
     });
+
+    if (Array.isArray(file.pages) && file.pages.length) {
+      await Promise.all(
+        file.pages
+          .filter((page) => page?.publicId)
+          .map((page) => cloudinary.uploader.destroy(page.publicId)),
+      );
+    }
 
     await File.findByIdAndDelete(req.params.id);
 
