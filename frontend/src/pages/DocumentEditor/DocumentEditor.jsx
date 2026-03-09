@@ -49,8 +49,46 @@ const readFileAsDataUrl = (file) =>
     reader.readAsDataURL(file);
   });
 
+const burnWatermarkToCanvas = (baseImageUrl, watermark) => {
+  return new Promise((resolve, reject) => {
+    if (!watermark) return resolve(baseImageUrl);
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const baseImg = new Image();
+    const logoImg = new Image();
+
+    baseImg.crossOrigin = "anonymous"; // Prevents CORS issues with Cloudinary
+    logoImg.crossOrigin = "anonymous";
+
+    baseImg.onload = () => {
+      canvas.width = baseImg.width;
+      canvas.height = baseImg.height;
+      ctx.drawImage(baseImg, 0, 0);
+
+      logoImg.onload = () => {
+        const w = (watermark.widthPercent / 100) * canvas.width;
+        const h = (logoImg.height / logoImg.width) * w;
+        const x = (watermark.position.xPercent / 100) * canvas.width;
+        const y = (watermark.position.yPercent / 100) * canvas.height;
+
+        ctx.save();
+        ctx.globalAlpha = watermark.opacity;
+        ctx.translate(x, y);
+        ctx.drawImage(logoImg, -w / 2, -h / 2, w, h);
+        ctx.restore();
+
+        resolve(canvas.toDataURL("image/jpeg", 0.9));
+      };
+      logoImg.src = watermark.logoData;
+    };
+    baseImg.onerror = () => reject(new Error("Failed to load base image"));
+    baseImg.src = baseImageUrl;
+  });
+};
+
 const DocumentEditor = () => {
-  const { id } = useParams(); // Get :id from URL
+  const { id } = useParams(); 
   const navigate = useNavigate();
   const location = useLocation();
   const file = location.state?.uploadedFile || null;
@@ -183,91 +221,10 @@ const extractFromArrayBuffer = async (arrayBuffer) => {
   setPages(extractedPages);
 };
 
-// Re-usable extraction logic
 const extractFromBlob = async (blob) => {
   const data = await blob.arrayBuffer();
   await extractFromArrayBuffer(data);
 };
-
-  // useEffect(() => {
-  //   const extractPages = async () => {
-  //     if (!file) {
-  //       return;
-  //     }
-
-  //     clearObjectUrls();
-  //     setError("");
-  //     setPages([]);
-  //     setActivePageIndex(0);
-  //     setMainTitle(file.name.replace(/\.[^/.]+$/, ""));
-  //     setIsExtracting(true);
-
-  //     try {
-  //       const fileNameLower = file.name.toLowerCase();
-  //       const isPdf =
-  //         file.type === "application/pdf" || fileNameLower.endsWith(".pdf");
-
-  //       if (isPdf) {
-  //         const pdfjsLib = await import("pdfjs-dist");
-  //         const pdfWorkerSrc = (
-  //           await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
-  //         ).default;
-  //         pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
-
-  //         const data = await file.arrayBuffer();
-  //         const pdfDocument = await pdfjsLib.getDocument({ data }).promise;
-  //         const extractedPages = [];
-
-  //         for (
-  //           let pageIndex = 1;
-  //           pageIndex <= pdfDocument.numPages;
-  //           pageIndex += 1
-  //         ) {
-  //           const page = await pdfDocument.getPage(pageIndex);
-  //           const viewport = page.getViewport({ scale: 1.3 });
-  //           const canvas = document.createElement("canvas");
-  //           const context = canvas.getContext("2d");
-  //           if (!context) {
-  //             throw new Error("Failed to initialize canvas rendering context.");
-  //           }
-
-  //           canvas.width = Math.floor(viewport.width);
-  //           canvas.height = Math.floor(viewport.height);
-
-  //           await page.render({
-  //             canvasContext: context,
-  //             viewport,
-  //           }).promise;
-
-  //           const imageUrl = canvas.toDataURL("image/jpeg", 0.9);
-  //           extractedPages.push(buildInitialPage(imageUrl, pageIndex));
-  //         }
-
-  //         setPages(extractedPages);
-  //         return;
-  //       }
-
-  //       if (file.type.startsWith("image/")) {
-  //         const imageUrl = URL.createObjectURL(file);
-  //         createdObjectUrlsRef.current.push(imageUrl);
-  //         setPages([buildInitialPage(imageUrl, 1)]);
-  //         return;
-  //       }
-
-  //       setError(
-  //         "Unsupported file format. Please upload PDF, PNG, JPG, or JPEG.",
-  //       );
-  //     } catch (extractError) {
-  //       setError(
-  //         extractError.message || "Failed to process the uploaded file.",
-  //       );
-  //     } finally {
-  //       setIsExtracting(false);
-  //     }
-  //   };
-
-  //   extractPages();
-  // }, [file]);
 
   const pageCounter = useMemo(() => {
     if (!pages.length) {
@@ -365,48 +322,99 @@ const extractFromBlob = async (blob) => {
   };
 
   const handleSubmit = async () => {
-    if (!pages.length || isExtracting) {
-      return;
-    }
+    if (!pages.length || isExtracting || isSubmitting) return;
 
-    setIsSubmitting(true);
-    setError("");
+  setIsSubmitting(true);
+  setError("");
 
-    try {
-      const payload = {
-        mainTitle,
-        fileId: id || uploadedMeta?.fileId || "",
-        uploadedPdfUrl: uploadedMeta?.pdfUrl || uploadedPdfUrl || "",
-        sourceFileName: sourceFileName || "",
-        watermark: watermarkLogoDataUrl
-          ? {
-              logoName: watermarkLogoName,
-              logoData: watermarkLogoDataUrl,
-              opacity: watermarkOpacity,
-              widthPercent: watermarkWidthPercent,
-              position: {
-                xPercent: watermarkXPercent,
-                yPercent: watermarkYPercent,
-              },
-            }
-          : null,
-        pages: pages.map((page, index) => ({
+  try {
+    const processedPages = await Promise.all(
+      pages.map(async (page) => {
+        const finalImageData = await burnWatermarkToCanvas(
+          page.imageUrl,
+          watermarkLogoDataUrl ? {
+            logoData: watermarkLogoDataUrl,
+            opacity: watermarkOpacity,
+            widthPercent: watermarkWidthPercent,
+            position: { xPercent: watermarkXPercent, yPercent: watermarkYPercent },
+          } : null
+        );
+
+        return {
           pageNumber: page.pageNumber,
           pageTitle: page.pageTitle,
           description: page.description,
-          imageData: page.imageUrl,
-          isActive: index === activePageIndex,
-        })),
-      };
+          imageData: finalImageData,
+        };
+      })
+    );
 
-      // Ready for API integration.
-      console.log("Document payload", payload);
-      navigate("/", { replace: true });
-    } catch (submitError) {
-      setError(submitError.message || "Failed to submit document.");
-    } finally {
-      setIsSubmitting(false);
+    const payload = {
+      fileId: id,
+      mainTitle,
+      pages: processedPages,
+    };
+
+    // 3. Send to your Node.js Backend Finalize Route
+    const response = await fetch("http://localhost:3000/api/files/finalize", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Final submission failed.");
     }
+
+    navigate("/", { replace: true });
+  } catch (submitError) {
+    setError(submitError.message || "Failed to submit document.");
+  } finally {
+    setIsSubmitting(false);
+  }
+    // if (!pages.length || isExtracting) {
+    //   return;
+    // }
+
+    // setIsSubmitting(true);
+    // setError("");
+
+    // try {
+    //   const payload = {
+    //     mainTitle,
+    //     fileId: id || uploadedMeta?.fileId || "",
+    //     uploadedPdfUrl: uploadedMeta?.pdfUrl || uploadedPdfUrl || "",
+    //     sourceFileName: sourceFileName || "",
+    //     watermark: watermarkLogoDataUrl
+    //       ? {
+    //           logoName: watermarkLogoName,
+    //           logoData: watermarkLogoDataUrl,
+    //           opacity: watermarkOpacity,
+    //           widthPercent: watermarkWidthPercent,
+    //           position: {
+    //             xPercent: watermarkXPercent,
+    //             yPercent: watermarkYPercent,
+    //           },
+    //         }
+    //       : null,
+    //     pages: pages.map((page, index) => ({
+    //       pageNumber: page.pageNumber,
+    //       pageTitle: page.pageTitle,
+    //       description: page.description,
+    //       imageData: page.imageUrl,
+    //       isActive: index === activePageIndex,
+    //     })),
+    //   };
+
+    //   // Ready for API integration.
+    //   console.log("Document payload", payload);
+    //   navigate("/", { replace: true });
+    // } catch (submitError) {
+    //   setError(submitError.message || "Failed to submit document.");
+    // } finally {
+    //   setIsSubmitting(false);
+    // }
   };
 
   if (!id) {
