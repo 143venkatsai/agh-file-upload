@@ -183,9 +183,9 @@ function App() {
       <GlobalStyle />
       <Router>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<SubmittedFiles />} />
+          <Route path="/uploads" element={<Home />} />
           <Route path="/document-editor/:id" element={<DocumentEditor />} />
-          <Route path="/submitted-files" element={<SubmittedFiles />} />
         </Routes>
       </Router>
       <ToastContainer position="top-right" autoClose={2500} />

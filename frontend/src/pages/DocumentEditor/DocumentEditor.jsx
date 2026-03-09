@@ -258,7 +258,7 @@ const DocumentEditor = () => {
   };
 
   const handleCancel = () => {
-    navigate("/");
+    navigate("/uploads");
   };
 
   const handleWatermarkLogoChange = async (event) => {
@@ -391,7 +391,7 @@ const DocumentEditor = () => {
       }
 
       toast.success("Document submitted successfully.");
-      navigate("/submitted-files", { replace: true });
+      navigate("/", { replace: true });
     } catch (submitError) {
       const submitErrorMessage =
         submitError.message || "Failed to submit document.";

@@ -19,32 +19,6 @@ import {
 
 const API_BASE_URL = "http://localhost:3000/api/files";
 
-const DUMMY_FILES = [
-  {
-    id: "dummy-1",
-    name: "Project Proposal.pdf",
-    meta: "Modified 2h ago - 4.2 MB",
-    isDummy: true,
-  },
-  {
-    id: "dummy-2",
-    name: "Brand_Asset_v2.png",
-    meta: "Modified Yesterday - 12.8 MB",
-    isDummy: true,
-  },
-  {
-    id: "dummy-3",
-    name: "Q4_Financial_Report.csv",
-    meta: "Modified Oct 12 - 856 KB",
-    isDummy: true,
-  },
-  {
-    id: "dummy-4",
-    name: "Tutorial_Final_Cut.mp4",
-    meta: "Modified Oct 05 - 245.0 MB",
-    isDummy: true,
-  },
-];
 
 const formatModifiedText = (dateValue) => {
   if (!dateValue) return "Modified recently";
@@ -132,7 +106,7 @@ const SubmittedFiles = () => {
             <ArrowLeft size={16} />
             Back
           </BackLink>
-          <UploadButton type="button" onClick={() => navigate("/")}>
+          <UploadButton type="button" onClick={() => navigate("/uploads")}>
             <Upload size={15} />
             Upload File
           </UploadButton>

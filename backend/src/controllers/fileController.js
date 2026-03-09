@@ -129,6 +129,7 @@ const finalizeFile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 const getPdf = async (req, res) => {
   try {
     const data = await File.find({}).sort({ updatedAt: -1 });
