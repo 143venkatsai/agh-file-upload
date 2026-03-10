@@ -1,6 +1,7 @@
 const File = require("../models/File");
 const cloudinary = require("../config/cloudinary");
 const Student = require("../models/Student")
+const mongoose = require("mongoose");
 
 const deleteCloudinaryAsset = async (publicId, options = {}) => {
   if (!publicId) return;

@@ -113,13 +113,37 @@ export const FileMeta = styled.p`
 export const ActionArea = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 0;
+  gap: 5px;
   flex-shrink: 0;
 
   @media (max-width: 680px) {
     width: 100%;
     justify-content: flex-end;
   }
+`;
+
+export const AccessButton = styled.button`
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: ${(props) => props.theme.link_sky_blue};
+  color: ${(props) => (props.theme.mode === "DARK" ? "#ffffff" : "#ffffff")};
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px 14px;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  opacity: ${(props) => (props.disabled ? 0.65 : 1)};
+`;
+
+export const ViewButton = styled.button`
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #08945f;
+  color: ${(props) => (props.theme.mode === "DARK" ? "#ffffff" : "#ffffff")};
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px 14px;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  opacity: ${(props) => (props.disabled ? 0.65 : 1)};
 `;
 
 export const RemoveButton = styled.button`

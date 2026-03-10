@@ -136,5 +136,6 @@ export const EmptyText = styled.p`
   margin: 0;
   padding: 18px 12px;
   font-size: 14px;
+  text-align: center;
   color: ${(props) => props.theme.text.secondary};
 `;
