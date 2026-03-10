@@ -214,7 +214,7 @@ const addStudent = async (req, res) => {
       email,
     } = req.body;
 
-    const newStudent = new Students({
+    const newStudent = new Student({
       firstName,
       lastName,
       collegeName,
@@ -239,7 +239,7 @@ const addStudent = async (req, res) => {
 const fileAccessStudentByFileId = async (req, res) => {
   try {
     const { id } = req.params;
-    const search = (req.query.search || req.query.keyword || "").trim();
+    const { search } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -256,7 +256,7 @@ const fileAccessStudentByFileId = async (req, res) => {
       .select("students")
       .populate({
         path: "students",
-        select: "firstName lastName email department year collegeName ugOrPg",
+        select: "firstName lastName email department year collegeName",
         match: searchFilter,
         options: {
           limit: limit,
@@ -302,7 +302,7 @@ const fileAccessStudentByFileId = async (req, res) => {
 const getAllStudentsWithFileAccess = async (req, res) => {
   try {
     const { id } = req.params;
-    const search = (req.query.search || req.query.keyword || "").trim();
+    const { search } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
@@ -349,55 +349,6 @@ const getAllStudentsWithFileAccess = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const updateFileStudentsAccess = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { studentIds } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid file ID format.",
-      });
-    }
-
-    if (!Array.isArray(studentIds)) {
-      return res.status(400).json({
-        success: false,
-        message: "studentIds must be an array.",
-      });
-    }
-
-    const validStudentIds = studentIds.filter((studentId) =>
-      mongoose.Types.ObjectId.isValid(studentId),
-    );
-
-    const updatedFile = await File.findByIdAndUpdate(
-      id,
-      { $set: { students: [...new Set(validStudentIds)] } },
-      { new: true },
-    );
-
-    if (!updatedFile) {
-      return res.status(404).json({
-        success: false,
-        message: "File not found.",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Access updated successfully.",
-      studentCount: updatedFile.students.length,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
   }
 };
 
@@ -485,7 +436,6 @@ module.exports = {
   addStudent,
   fileAccessStudentByFileId,
   getAllStudentsWithFileAccess,
-  updateFileStudentsAccess,
-  updateStudentFileAccess,
   removeStudentAccess,
+  updateStudentFileAccess,
 };
