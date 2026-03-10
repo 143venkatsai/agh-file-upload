@@ -271,7 +271,7 @@ const fileAccessStudentByFileId = async (req, res) => {
     }
 
     const totalMatchingStudents = await File.findById(id).then((doc) => {
-      return Student.countDocuments({
+      return Students.countDocuments({
         _id: { $in: doc.students },
         ...searchFilter,
       });
