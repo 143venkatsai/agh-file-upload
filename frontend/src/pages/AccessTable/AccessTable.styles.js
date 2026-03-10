@@ -7,6 +7,16 @@ export const Page = styled.div`
   padding: 22px 16px 30px;
 `;
 
+export const BackButton = styled.button`
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: ${(props) => props.theme.text.secondary};
+  font-size: 14px;
+  cursor: pointer;
+`;
+
 export const Container = styled.div`
   width: 100%;
   max-width: 1200px;

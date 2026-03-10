@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   AccessType,
+  BackButton,
   CheckboxInput,
   Container,
   EditAccessButton,
@@ -26,6 +27,7 @@ import {
   getFileAccessStudentsApi,
   updateFileStudentsAccessApi,
 } from "../../services/apiClient";
+import { ArrowLeft } from "lucide-react";
 
 const PAGE_LIMIT = 10;
 
@@ -190,10 +192,15 @@ const AccessTable = () => {
   };
 
   console.log(currentPage);
+  const navigate = useNavigate();
 
   return (
     <Page>
       <Container>
+        <BackButton type="button" onClick={() => navigate(-1)}>
+          <ArrowLeft size={16} />
+          Back
+        </BackButton>
         <Toolbar>
           <SearchInput
             type="search"
