@@ -130,12 +130,26 @@ const finalizeFile = async (req, res) => {
   }
 };
 
-const getPdf = async (req, res) => {
+// const getPdf = async (req, res) => {
+//   try {
+//     const data = await File.find({}).sort({ updatedAt: -1 });
+//     res
+//       .status(200)
+//       .json({ data, message: "Data fetch successfully", success: true });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+const getFiles = async (req, res) => {
   try {
-    const data = await File.find({}).sort({ updatedAt: -1 });
-    res
-      .status(200)
-      .json({ data, message: "Data fetch successfully", success: true });
+    // Query: success must be true AND the pages array must have at least one element
+    const files = await File.find({
+      success: true,
+      "pages.0": { $exists: true } 
+    }).sort({ createdAt: -1 }); // Show newest first
+
+    res.status(200).json(files);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -177,6 +191,6 @@ module.exports = {
   uploadPdf,
   getFileById,
   finalizeFile,
-  getPdf,
+  getFiles,
   deleteFile,
 };

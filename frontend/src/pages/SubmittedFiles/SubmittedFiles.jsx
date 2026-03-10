@@ -51,7 +51,7 @@ const SubmittedFiles = () => {
         const apiFiles = Array.isArray(result?.data) ? result.data : [];
 
         if (!apiFiles.length) {
-          setItems(DUMMY_FILES);
+          setItems([]);
           return;
         }
 
@@ -97,6 +97,12 @@ const SubmittedFiles = () => {
       setDeletingId("");
     }
   };
+
+  if (items.length<=0){
+    return (
+      <div>No Files avaliable</div>
+    )
+  }
 
   return (
     <Page>
