@@ -16,6 +16,8 @@ import {
   BackLink,
   TopBar,
   CenterNoFilesLoader,
+  ViewButton,
+  AccessButton,
 } from "./SubmittedFiles.styles";
 
 const API_BASE_URL = "http://localhost:3000/api/files";
@@ -49,8 +51,8 @@ const SubmittedFiles = () => {
         }
         const result = await response.json();
         const apiFiles = Array.isArray(result?.files) ? result.files : [];
-        setItems(apiFiles)
-        
+        setItems(apiFiles);
+
         if (!apiFiles.length) {
           setItems([]);
           return;
@@ -103,6 +105,16 @@ const SubmittedFiles = () => {
     }
   };
 
+  const handleView = (item) => {
+    if (!item?.id) return;
+    navigate(`/file-view/${item.id}`);
+  };
+
+  const handleViewAccess = (item) => {
+    if (!item?.id) return;
+    navigate(`/view-access/${item.id}`);
+  };
+
   return (
     <Page>
       <Container>
@@ -131,6 +143,15 @@ const SubmittedFiles = () => {
                 </FilePrimary>
 
                 <ActionArea>
+                  <AccessButton
+                    type="button"
+                    onClick={() => handleViewAccess(item)}
+                  >
+                    View Students
+                  </AccessButton>
+                  <ViewButton type="button" onClick={() => handleView(item)}>
+                    View
+                  </ViewButton>
                   <RemoveButton
                     type="button"
                     onClick={() => handleRemove(item)}

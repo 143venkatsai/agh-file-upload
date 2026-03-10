@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   AccessType,
   Container,
@@ -18,53 +19,81 @@ import {
   Toolbar,
 } from "./AccessTable.styles";
 
-const DUMMY_ROWS = [
-  {
-    id: 1,
-    name: "Johnathan Doe",
-    collegeName: "Tech Institute of Technology",
-    level: "UG",
-    yearPassing: "2024",
-    department: "Computer Science",
-  },
-  {
-    id: 2,
-    name: "Jane Sarah Smith",
-    collegeName: "Metropolitan Science College",
-    level: "PG",
-    yearPassing: "2023",
-    department: "Quantum Physics",
-  },
-];
-
-const PAGE_SIZE = 1;
+const API_BASE_URL = "http://localhost:3000/api/files";
+const PAGE_SIZE = 5;
 
 const AccessTable = () => {
+  const { id } = useParams();
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [rows, setRows] = useState(DUMMY_ROWS);
+  const [rows, setRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const filteredRows = useMemo(() => {
-    const lowerQuery = query.trim().toLowerCase();
-    if (!lowerQuery) return rows;
+  useEffect(() => {
+    if (!id) {
+      setRows([]);
+      return;
+    }
 
-    return rows.filter((row) =>
-      [row.name, row.collegeName, row.level, row.yearPassing, row.department]
-        .join(" ")
-        .toLowerCase()
-        .includes(lowerQuery),
-    );
-  }, [query, rows]);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const searchParam = query.trim()
+          ? `?search=${encodeURIComponent(query.trim())}`
+          : "";
+
+        const response = await fetch(
+          `${API_BASE_URL}/students/access/${id}${searchParam}`,
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch students (${response.status})`);
+        }
+
+        const data = await response.json();
+        const students = Array.isArray(data?.students) ? data.students : [];
+
+        const mappedRows = students.map((student) => ({
+          id: student._id,
+          name: `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+          collegeName: student.collegeName || "-",
+          level: student.ugOrPg || "-",
+          yearPassing: student.year || "-",
+          department: student.department || "-",
+        }));
+
+        setRows(mappedRows);
+      } catch (fetchError) {
+        if (fetchError.name !== "AbortError") {
+          setError(fetchError.message || "Failed to load access list.");
+          setRows([]);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [id, query]);
+
+  const filteredRows = useMemo(() => rows, [rows]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
-
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * PAGE_SIZE;
   const endIndex = startIndex + PAGE_SIZE;
   const visibleRows = filteredRows.slice(startIndex, endIndex);
 
-  const handleRemove = (id) => {
-    setRows((prevRows) => prevRows.filter((row) => row.id !== id));
+  const handleRemove = (studentId) => {
+    setRows((prevRows) => prevRows.filter((row) => row.id !== studentId));
   };
 
   return (
@@ -80,7 +109,7 @@ const AccessTable = () => {
               setCurrentPage(1);
             }}
           />
-          <EditAccessButton type="button">Edit Access</EditAccessButton>
+          <EditAccessButton type="button">Add Students</EditAccessButton>
         </Toolbar>
 
         <TableWrap>
@@ -119,7 +148,13 @@ const AccessTable = () => {
               ))}
             </tbody>
           </Table>
-          {!visibleRows.length && <EmptyText>No records found.</EmptyText>}
+
+          {isLoading && <EmptyText>Loading students...</EmptyText>}
+          {!id && <EmptyText>File id is missing in route.</EmptyText>}
+          {!isLoading && !error && !visibleRows.length && (
+            <EmptyText>No records found.</EmptyText>
+          )}
+          {error && <EmptyText>{error}</EmptyText>}
         </TableWrap>
 
         <Footer>
