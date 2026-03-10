@@ -256,7 +256,7 @@ const fileAccessStudentByFileId = async (req, res) => {
       .select("students")
       .populate({
         path: "students",
-        select: "firstName lastName email department year collegeName",
+        select: "firstName lastName email department year collegeName ugOrPg-",
         match: searchFilter,
         options: {
           limit: limit,
