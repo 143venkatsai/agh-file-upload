@@ -239,14 +239,14 @@ const addStudent =  async(req,res) => {
 const fileAccessStudentByFileId = async (req, res) => {
   try {
     const { id } = req.params;
-    const { keyword } = req.query;
+    const searchTerm = (req.query.keyword || req.query.search || "").trim();
     const page = parseInt(req.query.page) || 1; 
-    const limit = 10;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     let searchFilter = {};
-    if (keyword) {
-      const regex = new RegExp(keyword, "i");
+    if (searchTerm) {
+      const regex = new RegExp(searchTerm, "i");
       searchFilter = {
         $or: [
           { firstName: regex },

@@ -18,7 +18,10 @@ const DetailsPanel = ({ fileName, activePage }) => {
         <FileName>{fileName || "Untitled"}</FileName>
       </FieldWrap>
 
-      <ImagePreview src={activePage.imageUrl} alt={activePage.title || "Page preview"} />
+      <ImagePreview
+        src={activePage.imageUrl}
+        alt={activePage.title || "Page preview"}
+      />
 
       <FieldWrap>
         <FieldLabel>Title</FieldLabel>

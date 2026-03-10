@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import DetailsPanel from "../../components/FileViewer/DetailsPanel";
-import ThumbnailGrid from "../../components/FileViewer/ThumbnailGrid";
+import DetailsPanel from "../../components/DetailsPanel/DetailsPanel";
+import ThumbnailGrid from "../../components/ThumbnailGrid/ThumbnailGrid";
 import {
   BackButton,
   Container,
@@ -52,7 +52,10 @@ const FileView = () => {
     fetchFile();
   }, [id]);
 
-  const activePage = useMemo(() => pages[activeIndex] || null, [pages, activeIndex]);
+  const activePage = useMemo(
+    () => pages[activeIndex] || null,
+    [pages, activeIndex],
+  );
 
   return (
     <Page>

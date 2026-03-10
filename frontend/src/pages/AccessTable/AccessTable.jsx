@@ -18,9 +18,9 @@ import {
   Th,
   Toolbar,
 } from "./AccessTable.styles";
+import { toast } from "react-toastify";
 
 const API_BASE_URL = "http://localhost:3000/api/files";
-const PAGE_SIZE = 5;
 
 const AccessTable = () => {
   const { id } = useParams();
@@ -29,6 +29,16 @@ const AccessTable = () => {
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isAddMode, setIsAddMode] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalStudents: 0,
+    pageSize: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
 
   useEffect(() => {
     if (!id) {
@@ -42,12 +52,16 @@ const AccessTable = () => {
       setError("");
 
       try {
-        const searchParam = query.trim()
-          ? `?search=${encodeURIComponent(query.trim())}`
-          : "";
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: "10",
+        });
+        if (query.trim()) {
+          params.set("keyword", query.trim());
+        }
 
         const response = await fetch(
-          `${API_BASE_URL}/students/access/${id}${searchParam}`,
+          `${API_BASE_URL}/students/access/${id}?${params.toString()}`,
           { signal: controller.signal },
         );
 
@@ -55,8 +69,11 @@ const AccessTable = () => {
           throw new Error(`Failed to fetch students (${response.status})`);
         }
 
-        const data = await response.json();
-        const students = Array.isArray(data?.students) ? data.students : [];
+        const payload = await response.json();
+        const students = Array.isArray(payload?.data?.students)
+          ? payload.data.students
+          : [];
+        const pageInfo = payload?.data?.pagination || {};
 
         const mappedRows = students.map((student) => ({
           id: student._id,
@@ -68,32 +85,128 @@ const AccessTable = () => {
         }));
 
         setRows(mappedRows);
+        setPagination({
+          currentPage: pageInfo.currentPage || currentPage,
+          totalPages: pageInfo.totalPages || 1,
+          totalStudents: pageInfo.totalStudents || 0,
+          pageSize: pageInfo.pageSize || mappedRows.length,
+          hasNextPage: Boolean(pageInfo.hasNextPage),
+          hasPrevPage: Boolean(pageInfo.hasPrevPage),
+        });
       } catch (fetchError) {
         if (fetchError.name !== "AbortError") {
           setError(fetchError.message || "Failed to load access list.");
           setRows([]);
+          setPagination((prev) => ({
+            ...prev,
+            totalStudents: 0,
+            totalPages: 1,
+            pageSize: 0,
+            hasNextPage: false,
+            hasPrevPage: false,
+          }));
         }
       } finally {
         setIsLoading(false);
       }
-    }, 300);
+    }, 250);
 
     return () => {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [id, query]);
+  }, [id, query, currentPage]);
 
-  const filteredRows = useMemo(() => rows, [rows]);
+  const visibleRows = useMemo(() => rows, [rows]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const startIndex = (safePage - 1) * PAGE_SIZE;
-  const endIndex = startIndex + PAGE_SIZE;
-  const visibleRows = filteredRows.slice(startIndex, endIndex);
+  const startIndex = pagination.totalStudents
+    ? (pagination.currentPage - 1) * (pagination.pageSize || 10) + 1
+    : 0;
+  const endIndex = pagination.totalStudents
+    ? Math.min(
+        (pagination.currentPage - 1) * (pagination.pageSize || 10) +
+          visibleRows.length,
+        pagination.totalStudents,
+      )
+    : 0;
 
   const handleRemove = (studentId) => {
     setRows((prevRows) => prevRows.filter((row) => row.id !== studentId));
+  };
+
+  const fetchAllStudents = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}/students`);
+
+      // if (!response.ok) {
+      //   throw new Error("Failed to fetch students");
+      // }
+
+      const payload = await response.json();
+
+      const students = payload?.data?.students || [];
+
+      const mappedRows = students.map((student) => ({
+        id: student._id,
+        name: `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+        collegeName: student.collegeName || "-",
+        level: student.ugOrPg || "-",
+        yearPassing: student.year || "-",
+        department: student.department || "-",
+        hasAccess: student.hasAccess,
+      }));
+
+      setRows(mappedRows);
+
+      const selected = new Set(
+        mappedRows.filter((s) => s.hasAccess).map((s) => s.id),
+      );
+
+      setSelectedStudents(selected);
+    } catch (err) {
+      console.error(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleStudent = (id) => {
+    setSelectedStudents((prev) => {
+      const newSet = new Set(prev);
+
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+
+      return newSet;
+    });
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/students/access/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentIds: Array.from(selectedStudents),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update access");
+      }
+
+      toast.success("Access updated successfully");
+
+      setIsAddMode(false);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -109,7 +222,15 @@ const AccessTable = () => {
               setCurrentPage(1);
             }}
           />
-          <EditAccessButton type="button">Add Students</EditAccessButton>
+          <EditAccessButton
+            type="button"
+            onClick={() => {
+              setIsAddMode(true);
+              fetchAllStudents();
+            }}
+          >
+            Add Students
+          </EditAccessButton>
         </Toolbar>
 
         <TableWrap>
@@ -128,8 +249,17 @@ const AccessTable = () => {
             <tbody>
               {visibleRows.map((row, idx) => (
                 <tr key={row.id}>
-                  <Td>{startIndex + idx + 1}</Td>
-                  <Td>{row.name}</Td>
+                  <Td>{startIndex + idx}</Td>
+                  <Td>
+                    {isAddMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.has(row.id)}
+                        onChange={() => toggleStudent(row.id)}
+                      />
+                    )}
+                    {row.name}
+                  </Td>
                   <Td>{row.collegeName}</Td>
                   <Td>
                     <AccessType>{row.level}</AccessType>
@@ -159,41 +289,50 @@ const AccessTable = () => {
 
         <Footer>
           <ResultText>
-            Showing {filteredRows.length ? startIndex + 1 : 0} to{" "}
-            {Math.min(endIndex, filteredRows.length)} of {filteredRows.length}{" "}
+            Showing {startIndex} to {endIndex} of {pagination.totalStudents}{" "}
             results
           </ResultText>
           <Pagination>
             <PageButton
               type="button"
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={safePage === 1}
+              disabled={!pagination.hasPrevPage}
             >
               {"<"}
             </PageButton>
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-              (page) => (
-                <PageButton
-                  key={page}
-                  type="button"
-                  $active={page === safePage}
-                  onClick={() => setCurrentPage(page)}
-                >
-                  {page}
-                </PageButton>
-              ),
-            )}
+            {Array.from(
+              { length: Math.max(1, pagination.totalPages) },
+              (_, index) => index + 1,
+            ).map((page) => (
+              <PageButton
+                key={page}
+                type="button"
+                $active={page === pagination.currentPage}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </PageButton>
+            ))}
             <PageButton
               type="button"
               onClick={() =>
-                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                setCurrentPage((prev) =>
+                  Math.min(Math.max(1, pagination.totalPages), prev + 1),
+                )
               }
-              disabled={safePage === totalPages}
+              disabled={!pagination.hasNextPage}
             >
               {">"}
             </PageButton>
           </Pagination>
         </Footer>
+        {isAddMode && (
+          <div style={{ marginTop: "10px", textAlign: "right" }}>
+            <EditAccessButton onClick={handleSaveChanges}>
+              Save Changes
+            </EditAccessButton>
+          </div>
+        )}
       </Container>
     </Page>
   );
