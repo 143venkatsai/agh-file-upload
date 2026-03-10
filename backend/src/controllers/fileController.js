@@ -1,6 +1,6 @@
 const File = require("../models/File");
 const cloudinary = require("../config/cloudinary");
-const Student = require("../models/Student")
+const Students = require("../models/Students")
 
 const deleteCloudinaryAsset = async (publicId, options = {}) => {
   if (!publicId) return;
@@ -238,14 +238,14 @@ const addStudent =  async(req,res) => {
 const fileAccessStudentByFileId = async (req, res) => {
   try {
     const { id } = req.params;
-    const { keyword } = req.query;
+    const { search } = req.query;
     const page = parseInt(req.query.page) || 1; 
     const limit = 10;
     const skip = (page - 1) * limit;
 
     let searchFilter = {};
-    if (keyword) {
-      const regex = new RegExp(keyword, "i");
+    if (search) {
+      const regex = new RegExp(search, "i");
       searchFilter = {
         $or: [
           { firstName: regex },
@@ -300,6 +300,61 @@ const fileAccessStudentByFileId = async (req, res) => {
   }
 };
 
+const getAllStudentsWithFileAccess = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const targetFile = await File.findById(id).select("students");
+    if (!targetFile) {
+      return res.status(404).json({ success: false, message: "File not found" });
+    }
+    const authorizedIds = targetFile.students.map((id) => id.toString());
+    let searchFilter = {};
+    if (search) {
+      const regex = new RegExp(search, "i");
+      searchFilter = {
+        $or: [
+          { firstName: regex },
+          { email: regex },
+          { collegeName: regex }
+        ]
+      };
+    }
+    const allStudents = await Students.find(searchFilter)
+      .limit(limit)
+      .skip(skip)
+      .sort({ firstName: 1 })
+      .lean();
+
+    const totalStudents = await Students.countDocuments(searchFilter);
+    const totalPages = Math.ceil(totalStudents / limit);
+    const studentsWithStatus = allStudents.map((student) => ({
+      ...student,
+      hasAccess: authorizedIds.includes(student._id.toString())
+    }));
+    res.status(200).json({
+      success: true,
+      message: "Students fetched with access status",
+      data: {
+        students: studentsWithStatus,
+        pagination: {
+          totalStudents,
+          totalPages,
+          currentPage: page,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 
 module.exports = {
@@ -309,5 +364,6 @@ module.exports = {
   getFiles,
   deleteFile,
   addStudent,
-  fileAccessStudentByFileId
+  fileAccessStudentByFileId,
+  getAllStudentsWithFileAccess
 };
