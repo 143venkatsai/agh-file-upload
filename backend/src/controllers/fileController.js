@@ -214,7 +214,7 @@ const addStudent = async (req, res) => {
       email,
     } = req.body;
 
-    const newStudent = new Student({
+    const newStudent = new Students({
       firstName,
       lastName,
       collegeName,
@@ -378,7 +378,7 @@ const removeStudentAccess = async (req, res) => {
     const updatedFile = await File.findByIdAndUpdate(
       id,
       { $pull: { students: studentId } },
-      { new: true },
+      { returnDocument: "after" },
     );
 
     if (!updatedFile) {
@@ -391,44 +391,6 @@ const removeStudentAccess = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Access removed successfully.",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-const updateStudentFileAccess = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { studentIds } = req.body;
-
-    if (!id || !Array.isArray(studentIds)) {
-      return res.status(400).json({
-        success: false,
-        message: "File ID and an array of Student IDs are required.",
-      });
-    }
-
-    const updatedFile = await File.findByIdAndUpdate(
-      id,
-      { $addToSet: { students: { $each: studentIds } } },
-      { new: true },
-    ).select("students");
-
-    if (!updatedFile) {
-      return res.status(404).json({
-        success: false,
-        message: "File not found.",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: `${studentIds.length} students' access updated successfully.`,
-      totalAuthorized: updatedFile.students.length,
     });
   } catch (error) {
     res.status(500).json({
@@ -464,7 +426,7 @@ const updateFileStudentsAccess = async (req, res) => {
     const updatedFile = await File.findByIdAndUpdate(
       id,
       { $set: { students: [...new Set(validStudentIds)] } },
-      { new: true },
+      { returnDocument: "after" },
     );
 
     if (!updatedFile) {
@@ -497,6 +459,5 @@ module.exports = {
   fileAccessStudentByFileId,
   getAllStudentsWithFileAccess,
   removeStudentAccess,
-  updateStudentFileAccess,
   updateFileStudentsAccess
 };

@@ -108,7 +108,7 @@ const SubmittedFiles = () => {
     <Page>
       <Container>
         <TopBar>
-          <BackLink type="button" onClick={() => navigate(-1)}>
+          <BackLink type="button" onClick={() => navigate("/")}>
             <ArrowLeft size={16} />
             Back
           </BackLink>

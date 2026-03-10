@@ -12,7 +12,6 @@ const {
   fileAccessStudentByFileId,
   getAllStudentsWithFileAccess,
   removeStudentAccess,
-  updateStudentFileAccess,
   updateFileStudentsAccess,
 } = require("../controllers/fileController");
 
@@ -34,7 +33,6 @@ router.get("/students/access/:id", fileAccessStudentByFileId)
 router.post("/students/access/:id", updateFileStudentsAccess)
 router.get("/:id/students", getAllStudentsWithFileAccess)
 router.patch("/:id/remove-access",removeStudentAccess)
-router.patch("/:id/add-access",updateStudentFileAccess)
 
 
 module.exports = router;

@@ -44,6 +44,7 @@ const AccessTable = () => {
   const [removingStudentId, setRemovingStudentId] = useState("");
   const [error, setError] = useState("");
   const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [refreshKey, setRefreshKey] = useState(0);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -131,7 +132,7 @@ const AccessTable = () => {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [id, query, currentPage, isAddMode]);
+  }, [id, query, currentPage, isAddMode, refreshKey]);
 
   const visibleRows = useMemo(() => rows, [rows]);
 
@@ -153,16 +154,12 @@ const AccessTable = () => {
       await removeStudentAccessApi({ fileId: id, studentId });
       toast.success("Access removed successfully");
 
-      setRows((prevRows) => prevRows.filter((row) => row.id !== studentId));
       setSelectedStudents((prev) => {
         const next = new Set(prev);
         next.delete(studentId);
         return next;
       });
-      setPagination((prev) => ({
-        ...prev,
-        totalStudents: Math.max(0, prev.totalStudents - 1),
-      }));
+      setRefreshKey((prev) => prev + 1);
     } catch (removeError) {
       toast.error(removeError.message || "Failed to remove access");
     } finally {
@@ -214,7 +211,7 @@ const AccessTable = () => {
   return (
     <Page>
       <Container>
-        <BackButton type="button" onClick={() => navigate(-1)}>
+        <BackButton type="button" onClick={() => navigate("/")}>
           <ArrowLeft size={16} />
           Back
         </BackButton>
