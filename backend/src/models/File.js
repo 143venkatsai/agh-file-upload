@@ -50,8 +50,7 @@ const fileSchema = new mongoose.Schema(
     //   ref: "AdminUser"
     // },
 
-    pages: [pageSchema]
-    ,
+    pages: [pageSchema],
     status: {
       type: String,
       enum: ["pending", "completed"],
