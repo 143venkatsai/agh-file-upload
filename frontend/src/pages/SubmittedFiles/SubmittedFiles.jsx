@@ -15,10 +15,10 @@ import {
   UploadButton,
   BackLink,
   TopBar,
+  CenterNoFilesLoader,
 } from "./SubmittedFiles.styles";
 
 const API_BASE_URL = "http://localhost:3000/api/files";
-
 
 const formatModifiedText = (dateValue) => {
   if (!dateValue) return "Modified recently";
@@ -75,7 +75,9 @@ const SubmittedFiles = () => {
 
   const handleRemove = async (item) => {
     if (item.isDummy) {
-      setItems((prevItems) => prevItems.filter((entry) => entry.id !== item.id));
+      setItems((prevItems) =>
+        prevItems.filter((entry) => entry.id !== item.id),
+      );
       return;
     }
 
@@ -90,19 +92,15 @@ const SubmittedFiles = () => {
         throw new Error(`Delete failed (${response.status})`);
       }
 
-      setItems((prevItems) => prevItems.filter((entry) => entry.id !== item.id));
+      setItems((prevItems) =>
+        prevItems.filter((entry) => entry.id !== item.id),
+      );
     } catch (deleteError) {
       setError(deleteError.message || "Failed to delete file.");
     } finally {
       setDeletingId("");
     }
   };
-
-  if (items.length<=0){
-    return (
-      <div>No Files avaliable</div>
-    )
-  }
 
   return (
     <Page>
@@ -117,35 +115,44 @@ const SubmittedFiles = () => {
             Upload File
           </UploadButton>
         </TopBar>
+        {items.length > 0 && (
+          <>
+            {items.map((item) => (
+              <FileCard key={item.id}>
+                <FilePrimary>
+                  <FileIconBox>
+                    <FileText size={16} />
+                  </FileIconBox>
+                  <div>
+                    <FileName>{item.name}</FileName>
+                    <FileMeta>{item.meta}</FileMeta>
+                  </div>
+                </FilePrimary>
 
-        {items.map((item) => (
-          <FileCard key={item.id}>
-            <FilePrimary>
-              <FileIconBox>
-                <FileText size={16} />
-              </FileIconBox>
-              <div>
-                <FileName>{item.name}</FileName>
-                <FileMeta>{item.meta}</FileMeta>
-              </div>
-            </FilePrimary>
-
-            <ActionArea>
-              <RemoveButton
-                type="button"
-                onClick={() => handleRemove(item)}
-                disabled={deletingId === item.id}
-              >
-                {deletingId === item.id ? "Removing..." : "Remove"}
-              </RemoveButton>
-            </ActionArea>
-          </FileCard>
-        ))}
-
-        {!isLoading && !items.length && (
-          <EmptyText>No cards left. Use Upload File to add more.</EmptyText>
+                <ActionArea>
+                  <RemoveButton
+                    type="button"
+                    onClick={() => handleRemove(item)}
+                    disabled={deletingId === item.id}
+                  >
+                    {deletingId === item.id ? "Removing..." : "Remove"}
+                  </RemoveButton>
+                </ActionArea>
+              </FileCard>
+            ))}
+          </>
         )}
-        {isLoading && <EmptyText>Loading files...</EmptyText>}
+        {!isLoading && items.length <= 0 && (
+          <CenterNoFilesLoader>
+            <h2>No Files Available. Use Upload File to add more.</h2>
+          </CenterNoFilesLoader>
+        )}
+
+        {isLoading && (
+          <CenterNoFilesLoader>
+            <h2>Loading files...</h2>
+          </CenterNoFilesLoader>
+        )}
         {error && <EmptyText>{error}</EmptyText>}
       </Container>
     </Page>

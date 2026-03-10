@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import Home from "./pages/Home/Home";
 import DocumentEditor from "./pages/DocumentEditor/DocumentEditor";
 import SubmittedFiles from "./pages/SubmittedFiles/SubmittedFiles";
+import AccessTable from "./pages/AccessTable/AccessTable";
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -185,6 +186,7 @@ function App() {
         <Routes>
           <Route path="/" element={<SubmittedFiles />} />
           <Route path="/uploads" element={<Home />} />
+          <Route path="/access-table" element={<AccessTable />} />
           <Route path="/document-editor/:id" element={<DocumentEditor />} />
         </Routes>
       </Router>
