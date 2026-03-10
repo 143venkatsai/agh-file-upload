@@ -45,6 +45,13 @@ const fileSchema = new mongoose.Schema(
       default: ""
     },
 
+    students: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Student"
+      }
+    ],
+
     // adminUser: {
     //   type: mongoose.Schema.Types.ObjectId,
     //   ref: "AdminUser"

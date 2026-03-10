@@ -1,6 +1,6 @@
 const File = require("../models/File");
 const cloudinary = require("../config/cloudinary");
-const mongoose = require("mongoose");
+const Student = require("../models/Student")
 
 const deleteCloudinaryAsset = async (publicId, options = {}) => {
   if (!publicId) return;
@@ -201,10 +201,94 @@ const deleteFile = async (req, res) => {
   }
 };
 
+const addStudent =  async(req,res) => {
+  try{
+    const {
+      firstName,
+      lastName,
+      collegeName,
+      ugOrPg,
+      year,
+      department,
+      email
+    } = req.body;
+
+    const newStudent = new Student({
+      firstName,
+      lastName,
+      collegeName,
+      ugOrPg,
+      year,
+      department,
+      email
+    });
+    const savedStudent = await newStudent.save();
+    res.status(201).json({
+      message: "Student added successfully",
+      data: savedStudent
+    });
+  }catch(error){
+    res.status(500).json({
+      message: "Error adding student",
+      error: error.message
+    });
+  }
+}
+
+const fileAccessStudentByFileId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { search } = req.query;
+
+    let searchFilter = {};
+    if (search) {
+      
+      const regex = new RegExp(search, "i");
+      searchFilter = {
+        $or: [
+          { firstName: regex },
+          { email: regex },
+          { collegeName: regex }
+        ]
+      };
+    }
+
+    const file = await File.findById(id)
+      .select("students")
+      .populate({
+        path: "students",
+        select: "firstName lastName email department year collegeName",
+        match: searchFilter 
+      });
+
+    if (!file) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "File not found" 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 
+      "Students featched successfully",
+      students: file.students 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
+
+
 module.exports = {
   uploadPdf,
   getFileById,
   finalizeFile,
   getFiles,
   deleteFile,
+  addStudent,
+  fileAccessStudentByFileId
 };
