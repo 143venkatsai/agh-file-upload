@@ -143,12 +143,10 @@ const finalizeFile = async (req, res) => {
 
 const getFiles = async (req, res) => {
   try {
-    // Query: success must be true AND the pages array must have at least one element
     const files = await File.find({
       success: true,
       "pages.0": { $exists: true } 
-    }).sort({ createdAt: -1 }); // Show newest first
-
+    }).sort({ createdAt: -1 });
     res.status(200).json(files);
   } catch (error) {
     res.status(500).json({ message: error.message });
