@@ -354,7 +354,8 @@ const getAllStudentsWithFileAccess = async (req, res) => {
 
 const removeStudentAccess = async (req, res) => {
   try {
-    const { fileId, studentId } = req.body;
+    const { id } = req.params;
+    const { studentId } = req.body;
 
     if (!fileId || !studentId) {
       return res.status(400).json({
@@ -363,7 +364,6 @@ const removeStudentAccess = async (req, res) => {
       });
     }
 
-    // $pull removes the studentId from the students array if it exists
     const updatedFile = await File.findByIdAndUpdate(
       fileId,
       { $pull: { students: studentId } },
@@ -380,13 +380,49 @@ const removeStudentAccess = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Access removed successfully.",
-      // Optionally return the updated count or list
-      remainingAccessCount: updatedFile.students.length,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+const updateStudentFileAccess = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { studentIds } = req.body;
+
+    if (!id || !Array.isArray(studentIds)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "File ID and an array of Student IDs are required." 
+      });
+    }
+
+    const updatedFile = await File.findByIdAndUpdate(
+      id,
+      { $addToSet: { students: { $each: studentIds } } },
+      { new: true }
+    ).select("students");
+
+    if (!updatedFile) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "File not found." 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${studentIds.length} students' access updated successfully.`,
+      totalAuthorized: updatedFile.students.length
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
     });
   }
 };
@@ -400,4 +436,6 @@ module.exports = {
   addStudent,
   fileAccessStudentByFileId,
   getAllStudentsWithFileAccess,
+  removeStudentAccess,
+  updateStudentFileAccess
 };
