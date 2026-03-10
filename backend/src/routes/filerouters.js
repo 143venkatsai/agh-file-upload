@@ -12,8 +12,8 @@ const {
   fileAccessStudentByFileId,
   getAllStudentsWithFileAccess,
   removeStudentAccess,
-  updateStudentFileAccess
-  updateFileStudentsAccess
+  updateStudentFileAccess,
+  updateFileStudentsAccess,
 } = require("../controllers/fileController");
 
 router.post(
