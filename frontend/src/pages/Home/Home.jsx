@@ -136,7 +136,7 @@ const Home = () => {
     <HomeContainer>
       <UploadPageTitle>Upload Files Here</UploadPageTitle>
       <CardContainer>
-        <BackButton>
+        <BackButton onClick={()=>navigate("/")}>
           <ArrowLeft size={16} />
           Back
         </BackButton>
