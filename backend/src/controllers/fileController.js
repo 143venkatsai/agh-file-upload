@@ -239,12 +239,14 @@ const addStudent =  async(req,res) => {
 const fileAccessStudentByFileId = async (req, res) => {
   try {
     const { id } = req.params;
-    const { search } = req.query;
+    const { keyword } = req.query;
+    const page = parseInt(req.query.page) || 1; 
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
     let searchFilter = {};
-    if (search) {
-      
-      const regex = new RegExp(search, "i");
+    if (keyword) {
+      const regex = new RegExp(keyword, "i");
       searchFilter = {
         $or: [
           { firstName: regex },
@@ -259,29 +261,46 @@ const fileAccessStudentByFileId = async (req, res) => {
       .populate({
         path: "students",
         select: "firstName lastName email department year collegeName",
-        match: searchFilter 
+        match: searchFilter,
+        options: {
+          limit: limit,
+          skip: skip
+        }
       });
 
     if (!file) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "File not found" 
-      });
+      return res.status(404).json({ success: false, message: "File not found" });
     }
+
+    const totalMatchingStudents = await File.findById(id).then(doc => {
+        return Student.countDocuments({
+            _id: { $in: doc.students },
+            ...searchFilter
+        });
+    });
+
+    const totalPages = Math.ceil(totalMatchingStudents / limit);
 
     res.status(200).json({
       success: true,
-      message: 
-      "Students featched successfully",
-      students: file.students 
+      message: "Students fetched successfully",
+      data: {
+        students: file.students,
+        pagination: {
+          totalStudents: totalMatchingStudents,
+          totalPages: totalPages,
+          currentPage: page,
+          pageSize: file.students.length,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
+      }
     });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 module.exports = {
