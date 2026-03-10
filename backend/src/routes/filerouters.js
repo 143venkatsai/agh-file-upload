@@ -12,7 +12,7 @@ const {
   fileAccessStudentByFileId,
   getAllStudentsWithFileAccess,
   removeStudentAccess,
-  updateStudentFileAccess
+  updateStudentFileAccess,
   updateFileStudentsAccess
 } = require("../controllers/fileController");
 
