@@ -9,7 +9,8 @@ const {
   getFiles,
   deleteFile,
   addStudent,
-  fileAccessStudentByFileId
+  fileAccessStudentByFileId,
+  getAllStudentsWithFileAccess
 } = require("../controllers/fileController");
 
 router.post(
@@ -26,7 +27,8 @@ router.get('/get-pdf', getFiles);
 router.delete("/:id", deleteFile);
 
 router.post("/add-student", addStudent)
-router.get("/students/access/:id",fileAccessStudentByFileId)
+router.get("/students/access/:id", fileAccessStudentByFileId)
+router.get("/:id/students", getAllStudentsWithFileAccess)
 
 
 module.exports = router;

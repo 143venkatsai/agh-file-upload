@@ -1,6 +1,6 @@
 const File = require("../models/File");
 const cloudinary = require("../config/cloudinary");
-const Student = require("../models/Student")
+const Students = require("../models/Students");
 const mongoose = require("mongoose");
 
 const deleteCloudinaryAsset = async (publicId, options = {}) => {
@@ -167,9 +167,9 @@ const getFiles = async (req, res) => {
   try {
     const files = await File.find({
       success: true,
-      "pages.0": { $exists: true } 
+      "pages.0": { $exists: true },
     }).sort({ createdAt: -1 });
-    res.status(200).json({files, message: "Files fetch successfully"});
+    res.status(200).json({ files, message: "Files fetch successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -193,7 +193,7 @@ const deleteFile = async (req, res) => {
     await File.findByIdAndDelete(id);
 
     res.json({
-      message: "File deleted successfully", 
+      message: "File deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -202,8 +202,8 @@ const deleteFile = async (req, res) => {
   }
 };
 
-const addStudent =  async(req,res) => {
-  try{
+const addStudent = async (req, res) => {
+  try {
     const {
       firstName,
       lastName,
@@ -211,7 +211,7 @@ const addStudent =  async(req,res) => {
       ugOrPg,
       year,
       department,
-      email
+      email,
     } = req.body;
 
     const newStudent = new Student({
@@ -221,38 +221,34 @@ const addStudent =  async(req,res) => {
       ugOrPg,
       year,
       department,
-      email
+      email,
     });
     const savedStudent = await newStudent.save();
     res.status(201).json({
       message: "Student added successfully",
-      data: savedStudent
+      data: savedStudent,
     });
-  }catch(error){
+  } catch (error) {
     res.status(500).json({
       message: "Error adding student",
-      error: error.message
+      error: error.message,
     });
   }
-}
+};
 
 const fileAccessStudentByFileId = async (req, res) => {
   try {
     const { id } = req.params;
-    const searchTerm = (req.query.keyword || req.query.search || "").trim();
-    const page = parseInt(req.query.page) || 1; 
+    const { search } = req.query;
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     let searchFilter = {};
-    if (searchTerm) {
-      const regex = new RegExp(searchTerm, "i");
+    if (search) {
+      const regex = new RegExp(search, "i");
       searchFilter = {
-        $or: [
-          { firstName: regex },
-          { email: regex },
-          { collegeName: regex }
-        ]
+        $or: [{ firstName: regex }, { email: regex }, { collegeName: regex }],
       };
     }
 
@@ -264,19 +260,21 @@ const fileAccessStudentByFileId = async (req, res) => {
         match: searchFilter,
         options: {
           limit: limit,
-          skip: skip
-        }
+          skip: skip,
+        },
       });
 
     if (!file) {
-      return res.status(404).json({ success: false, message: "File not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "File not found" });
     }
 
-    const totalMatchingStudents = await File.findById(id).then(doc => {
-        return Student.countDocuments({
-            _id: { $in: doc.students },
-            ...searchFilter
-        });
+    const totalMatchingStudents = await File.findById(id).then((doc) => {
+      return Student.countDocuments({
+        _id: { $in: doc.students },
+        ...searchFilter,
+      });
     });
 
     const totalPages = Math.ceil(totalMatchingStudents / limit);
@@ -292,16 +290,106 @@ const fileAccessStudentByFileId = async (req, res) => {
           currentPage: page,
           pageSize: file.students.length,
           hasNextPage: page < totalPages,
-          hasPrevPage: page > 1
-        }
-      }
+          hasPrevPage: page > 1,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+const getAllStudentsWithFileAccess = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
+    const targetFile = await File.findById(id).select("students");
+    if (!targetFile) {
+      return res
+        .status(404)
+        .json({ success: false, message: "File not found" });
+    }
+    const authorizedIds = targetFile.students.map((id) => id.toString());
+    let searchFilter = {};
+    if (search) {
+      const regex = new RegExp(search, "i");
+      searchFilter = {
+        $or: [{ firstName: regex }, { email: regex }, { collegeName: regex }],
+      };
+    }
+    const allStudents = await Students.find(searchFilter)
+      .limit(limit)
+      .skip(skip)
+      .sort({ firstName: 1 })
+      .lean();
+
+    const totalStudents = await Students.countDocuments(searchFilter);
+    const totalPages = Math.ceil(totalStudents / limit);
+    const studentsWithStatus = allStudents.map((student) => ({
+      ...student,
+      hasAccess: authorizedIds.includes(student._id.toString()),
+    }));
+    res.status(200).json({
+      success: true,
+      message: "Students fetched with access status",
+      data: {
+        students: studentsWithStatus,
+        pagination: {
+          totalStudents,
+          totalPages,
+          currentPage: page,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const removeStudentAccess = async (req, res) => {
+  try {
+    const { fileId, studentId } = req.body;
+
+    if (!fileId || !studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "File ID and Student ID are required.",
+      });
+    }
+
+    // $pull removes the studentId from the students array if it exists
+    const updatedFile = await File.findByIdAndUpdate(
+      fileId,
+      { $pull: { students: studentId } },
+      { new: true },
+    );
+
+    if (!updatedFile) {
+      return res.status(404).json({
+        success: false,
+        message: "File not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Access removed successfully.",
+      // Optionally return the updated count or list
+      remainingAccessCount: updatedFile.students.length,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 module.exports = {
   uploadPdf,
@@ -310,5 +398,6 @@ module.exports = {
   getFiles,
   deleteFile,
   addStudent,
-  fileAccessStudentByFileId
+  fileAccessStudentByFileId,
+  getAllStudentsWithFileAccess,
 };
