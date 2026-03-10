@@ -10,7 +10,8 @@ const {
   deleteFile,
   addStudent,
   fileAccessStudentByFileId,
-  getAllStudentsWithFileAccess
+  getAllStudentsWithFileAccess,
+  updateFileStudentsAccess
 } = require("../controllers/fileController");
 
 router.post(
@@ -28,6 +29,7 @@ router.delete("/:id", deleteFile);
 
 router.post("/add-student", addStudent)
 router.get("/students/access/:id", fileAccessStudentByFileId)
+router.post("/students/access/:id", updateFileStudentsAccess)
 router.get("/:id/students", getAllStudentsWithFileAccess)
 
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, FileText, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { deleteFileApi, getFilesApi } from "../../services/apiClient";
 import {
   ActionArea,
   FileIconBox,
@@ -19,8 +20,6 @@ import {
   ViewButton,
   AccessButton,
 } from "./SubmittedFiles.styles";
-
-const API_BASE_URL = "http://localhost:3000/api/files";
 
 const formatModifiedText = (dateValue) => {
   if (!dateValue) return "Modified recently";
@@ -45,11 +44,7 @@ const SubmittedFiles = () => {
       setIsLoading(true);
       setError("");
       try {
-        const response = await fetch(`${API_BASE_URL}/get-pdf`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch files (${response.status})`);
-        }
-        const result = await response.json();
+        const result = await getFilesApi();
         const apiFiles = Array.isArray(result?.files) ? result.files : [];
         setItems(apiFiles);
 
@@ -87,13 +82,7 @@ const SubmittedFiles = () => {
     try {
       setDeletingId(item.id);
       setError("");
-      const response = await fetch(`${API_BASE_URL}/${item.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Delete failed (${response.status})`);
-      }
+      await deleteFileApi(item.id);
 
       setItems((prevItems) =>
         prevItems.filter((entry) => entry.id !== item.id),

@@ -72,12 +72,31 @@ export const Th = styled.th`
   border-bottom: 1px solid ${(props) => props.theme.border.primary};
 `;
 
+export const CheckboxInput = styled.input`
+  height: 20px;
+  width: 20px;
+  cursor: pointer;
+  margin-right: 8px;
+`;
+
 export const Td = styled.td`
   padding: 14px 12px;
   font-size: 15px;
   color: ${(props) => props.theme.text.primary};
   border-bottom: 1px solid ${(props) => props.theme.border.primary};
   vertical-align: top;
+`;
+
+export const TdNew = styled.td`
+  padding: 17px 12px;
+  font-size: 15px;
+  color: ${(props) => props.theme.text.primary};
+  border-bottom: 1px solid ${(props) => props.theme.border.primary};
+  vertical-align: top;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
 `;
 
 export const AccessType = styled.span`
@@ -93,9 +112,12 @@ export const AccessType = styled.span`
 
 export const RemoveButton = styled.button`
   color: ${(props) => props.theme.result_wrong_bg};
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  border: 1px solid;
+  padding: 4px 8px;
+  border-radius: 6px;
 `;
 
 export const Footer = styled.div`

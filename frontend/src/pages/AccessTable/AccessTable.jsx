@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
   AccessType,
+  CheckboxInput,
   Container,
   EditAccessButton,
   EmptyText,
@@ -15,21 +16,29 @@ import {
   Table,
   TableWrap,
   Td,
+  TdNew,
   Th,
   Toolbar,
 } from "./AccessTable.styles";
 import { toast } from "react-toastify";
+import {
+  getAllStudentsForFileApi,
+  getFileAccessStudentsApi,
+  updateFileStudentsAccessApi,
+} from "../../services/apiClient";
 
-const API_BASE_URL = "http://localhost:3000/api/files";
+const PAGE_LIMIT = 10;
 
 const AccessTable = () => {
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isAddMode = searchParams.get("mode") === "add";
+
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isAddMode, setIsAddMode] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -52,27 +61,23 @@ const AccessTable = () => {
       setError("");
 
       try {
-        const params = new URLSearchParams({
-          page: String(currentPage),
-          limit: "10",
-        });
-        if (query.trim()) {
-          params.set("keyword", query.trim());
-        }
+        const payload = isAddMode
+          ? await getAllStudentsForFileApi({
+              fileId: id,
+              search: query.trim(),
+              page: currentPage,
+              limit: PAGE_LIMIT,
+            })
+          : await getFileAccessStudentsApi({
+              fileId: id,
+              search: query.trim(),
+              page: currentPage,
+              limit: PAGE_LIMIT,
+            });
 
-        const response = await fetch(
-          `${API_BASE_URL}/students/access/${id}?${params.toString()}`,
-          { signal: controller.signal },
-        );
+        if (controller.signal.aborted) return;
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch students (${response.status})`);
-        }
-
-        const payload = await response.json();
-        const students = Array.isArray(payload?.data?.students)
-          ? payload.data.students
-          : [];
+        const students = payload?.data?.students || [];
         const pageInfo = payload?.data?.pagination || {};
 
         const mappedRows = students.map((student) => ({
@@ -82,6 +87,7 @@ const AccessTable = () => {
           level: student.ugOrPg || "-",
           yearPassing: student.year || "-",
           department: student.department || "-",
+          hasAccess: Boolean(student.hasAccess),
         }));
 
         setRows(mappedRows);
@@ -93,21 +99,27 @@ const AccessTable = () => {
           hasNextPage: Boolean(pageInfo.hasNextPage),
           hasPrevPage: Boolean(pageInfo.hasPrevPage),
         });
+
+        if (isAddMode) {
+          setSelectedStudents((prev) => {
+            const next = new Set(prev);
+            mappedRows.forEach((row) => {
+              if (row.hasAccess) {
+                next.add(row.id);
+              }
+            });
+            return next;
+          });
+        }
       } catch (fetchError) {
-        if (fetchError.name !== "AbortError") {
+        if (!controller.signal.aborted) {
           setError(fetchError.message || "Failed to load access list.");
           setRows([]);
-          setPagination((prev) => ({
-            ...prev,
-            totalStudents: 0,
-            totalPages: 1,
-            pageSize: 0,
-            hasNextPage: false,
-            hasPrevPage: false,
-          }));
         }
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     }, 250);
 
@@ -115,99 +127,69 @@ const AccessTable = () => {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [id, query, currentPage]);
+  }, [id, query, currentPage, isAddMode]);
 
   const visibleRows = useMemo(() => rows, [rows]);
 
   const startIndex = pagination.totalStudents
-    ? (pagination.currentPage - 1) * (pagination.pageSize || 10) + 1
+    ? (pagination.currentPage - 1) * PAGE_LIMIT + 1
     : 0;
   const endIndex = pagination.totalStudents
     ? Math.min(
-        (pagination.currentPage - 1) * (pagination.pageSize || 10) +
-          visibleRows.length,
+        (pagination.currentPage - 1) * PAGE_LIMIT + visibleRows.length,
         pagination.totalStudents,
       )
     : 0;
 
   const handleRemove = (studentId) => {
     setRows((prevRows) => prevRows.filter((row) => row.id !== studentId));
-  };
-
-  const fetchAllStudents = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/${id}/students`);
-
-      // if (!response.ok) {
-      //   throw new Error("Failed to fetch students");
-      // }
-
-      const payload = await response.json();
-
-      const students = payload?.data?.students || [];
-
-      const mappedRows = students.map((student) => ({
-        id: student._id,
-        name: `${student.firstName || ""} ${student.lastName || ""}`.trim(),
-        collegeName: student.collegeName || "-",
-        level: student.ugOrPg || "-",
-        yearPassing: student.year || "-",
-        department: student.department || "-",
-        hasAccess: student.hasAccess,
-      }));
-
-      setRows(mappedRows);
-
-      const selected = new Set(
-        mappedRows.filter((s) => s.hasAccess).map((s) => s.id),
-      );
-
-      setSelectedStudents(selected);
-    } catch (err) {
-      console.error(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleStudent = (id) => {
     setSelectedStudents((prev) => {
-      const newSet = new Set(prev);
-
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-
-      return newSet;
+      const next = new Set(prev);
+      next.delete(studentId);
+      return next;
     });
+  };
+
+  const toggleStudent = (studentId) => {
+    setSelectedStudents((prev) => {
+      const next = new Set(prev);
+      if (next.has(studentId)) {
+        next.delete(studentId);
+      } else {
+        next.add(studentId);
+      }
+      return next;
+    });
+  };
+
+  const handleEnableAddMode = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("mode", "add");
+    setSearchParams(nextParams);
+    setCurrentPage(1);
+  };
+
+  const handleDisableAddMode = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("mode");
+    setSearchParams(nextParams);
+    setCurrentPage(1);
   };
 
   const handleSaveChanges = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/students/access/${id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studentIds: Array.from(selectedStudents),
-        }),
+      await updateFileStudentsAccessApi({
+        fileId: id,
+        studentIds: Array.from(selectedStudents),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update access");
-      }
-
       toast.success("Access updated successfully");
-
-      setIsAddMode(false);
-    } catch (error) {
-      console.error(error);
+      handleDisableAddMode();
+    } catch (saveError) {
+      toast.error(saveError.message || "Failed to update access");
     }
   };
+
+  console.log(currentPage);
 
   return (
     <Page>
@@ -222,15 +204,15 @@ const AccessTable = () => {
               setCurrentPage(1);
             }}
           />
-          <EditAccessButton
-            type="button"
-            onClick={() => {
-              setIsAddMode(true);
-              fetchAllStudents();
-            }}
-          >
-            Add Students
-          </EditAccessButton>
+          {!isAddMode ? (
+            <EditAccessButton type="button" onClick={handleEnableAddMode}>
+              Add Students
+            </EditAccessButton>
+          ) : (
+            <EditAccessButton type="button" onClick={handleSaveChanges}>
+              Save Changes
+            </EditAccessButton>
+          )}
         </Toolbar>
 
         <TableWrap>
@@ -243,37 +225,41 @@ const AccessTable = () => {
                 <Th>UG/PG</Th>
                 <Th>YEAR PASSING</Th>
                 <Th>DEPARTMENT</Th>
-                <Th>ACTIONS</Th>
+                {!isAddMode && <Th>ACTIONS</Th>}
               </tr>
             </thead>
             <tbody>
               {visibleRows.map((row, idx) => (
                 <tr key={row.id}>
                   <Td>{startIndex + idx}</Td>
-                  <Td>
-                    {isAddMode && (
-                      <input
+                  {isAddMode ? (
+                    <TdNew>
+                      <CheckboxInput
                         type="checkbox"
                         checked={selectedStudents.has(row.id)}
                         onChange={() => toggleStudent(row.id)}
                       />
-                    )}
-                    {row.name}
-                  </Td>
+                      {row.name}
+                    </TdNew>
+                  ) : (
+                    <Td>{row.name}</Td>
+                  )}
                   <Td>{row.collegeName}</Td>
                   <Td>
                     <AccessType>{row.level}</AccessType>
                   </Td>
                   <Td>{row.yearPassing}</Td>
                   <Td>{row.department}</Td>
-                  <Td>
-                    <RemoveButton
-                      type="button"
-                      onClick={() => handleRemove(row.id)}
-                    >
-                      REMOVE ACCESS
-                    </RemoveButton>
-                  </Td>
+                  {!isAddMode && (
+                    <Td>
+                      <RemoveButton
+                        type="button"
+                        onClick={() => handleRemove(row.id)}
+                      >
+                        REMOVE ACCESS
+                      </RemoveButton>
+                    </Td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -326,13 +312,6 @@ const AccessTable = () => {
             </PageButton>
           </Pagination>
         </Footer>
-        {isAddMode && (
-          <div style={{ marginTop: "10px", textAlign: "right" }}>
-            <EditAccessButton onClick={handleSaveChanges}>
-              Save Changes
-            </EditAccessButton>
-          </div>
-        )}
       </Container>
     </Page>
   );

@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { ArrowLeft, UploadCloud } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { uploadFileApi } from "../../services/apiClient";
 import {
   BackButton,
   CardContainer,
@@ -45,8 +46,6 @@ const Home = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const uploadUrl = "http://localhost:3000/api/files/upload";
-
   const uploadFile = async (file) => {
     if (!file) {
       setError("Please choose a file first.");
@@ -63,16 +62,7 @@ const Home = () => {
       setError("");
       setMessage("");
 
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed (${response.status})`);
-      }
-
-      const responseData = await response.json();
+      const responseData = await uploadFileApi(formData);
       setUploadedFile(file);
       setUploadedMeta({
         fileId: responseData.fileId || "",

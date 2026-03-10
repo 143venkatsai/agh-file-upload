@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import DetailsPanel from "../../components/DetailsPanel/DetailsPanel";
 import ThumbnailGrid from "../../components/ThumbnailGrid/ThumbnailGrid";
+import { getFileByIdApi } from "../../services/apiClient";
 import {
   BackButton,
   Container,
@@ -12,8 +13,6 @@ import {
   Page,
   ThumbnailsPane,
 } from "./FileView.styles";
-
-const API_BASE_URL = "http://localhost:3000/api/files";
 
 const FileView = () => {
   const navigate = useNavigate();
@@ -33,11 +32,7 @@ const FileView = () => {
       setActiveIndex(0);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/get-pdf/${id}`);
-        if (!response.ok) {
-          throw new Error(`Failed to load file (${response.status})`);
-        }
-        const data = await response.json();
+        const data = await getFileByIdApi(id);
         const apiPages = Array.isArray(data?.pages) ? data.pages : [];
 
         setFileName(data.originalFileName || "Untitled");

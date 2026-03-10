@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import { finalizeFileApi, getFileByIdApi } from "../../services/apiClient";
 import {
   ActionRow,
   BackButton,
@@ -174,12 +175,7 @@ const DocumentEditor = () => {
           );
         }
 
-        const response = await fetch(
-          `http://localhost:3000/api/files/get-pdf/${id}`,
-        );
-        if (!response.ok)
-          throw new Error(`File not found (${response.status})`);
-        const data = await response.json();
+        const data = await getFileByIdApi(id);
 
         const fileName = data.originalFileName || data.title || "Untitled";
         const pdfUrl = data.pdfUrl || data.originalPdf || "";
@@ -379,16 +375,7 @@ const DocumentEditor = () => {
         pages: processedPages,
       };
 
-      const response = await fetch("http://localhost:3000/api/files/finalize", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Final submission failed.");
-      }
+      await finalizeFileApi(payload);
 
       toast.success("Document submitted successfully.");
       navigate("/", { replace: true });
