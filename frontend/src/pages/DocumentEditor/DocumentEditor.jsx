@@ -101,7 +101,6 @@ const DocumentEditor = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const file = location.state?.uploadedFile || null;
-  const uploadedMeta = location.state?.uploadedMeta || null;
   const createdObjectUrlsRef = useRef([]);
   const watermarkObjectUrlRef = useRef(null);
   const previewRef = useRef(null);
@@ -112,8 +111,7 @@ const DocumentEditor = () => {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [sourceFileName, setSourceFileName] = useState("");
-  const [uploadedPdfUrl, setUploadedPdfUrl] = useState("");
+
   const [watermarkLogoPreviewUrl, setWatermarkLogoPreviewUrl] = useState("");
   const [watermarkLogoDataUrl, setWatermarkLogoDataUrl] = useState("");
   const [watermarkLogoName, setWatermarkLogoName] = useState("");
@@ -154,7 +152,6 @@ const DocumentEditor = () => {
           const isPdf =
             file.type === "application/pdf" || fileNameLower.endsWith(".pdf");
 
-          setSourceFileName(file.name || "");
           setMainTitle((file.name || "Untitled").replace(/\.[^/.]+$/, ""));
 
           if (isPdf) {
@@ -184,8 +181,6 @@ const DocumentEditor = () => {
         }
 
         setMainTitle(fileName.replace(/\.[^/.]+$/, ""));
-        setSourceFileName(fileName);
-        setUploadedPdfUrl(pdfUrl);
 
         const pdfResponse = await fetch(pdfUrl);
         if (!pdfResponse.ok) {
