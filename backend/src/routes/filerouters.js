@@ -13,7 +13,7 @@ const {
   getAllStudentsWithFileAccess,
   removeStudentAccess,
   updateStudentFileAccess,
-  updateFileStudentsAccess
+  updateFileStudentsAccess,
 } = require("../controllers/fileController");
 
 router.post(
