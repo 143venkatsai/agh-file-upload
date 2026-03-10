@@ -395,34 +395,34 @@ const updateStudentFileAccess = async (req, res) => {
     const { studentIds } = req.body;
 
     if (!id || !Array.isArray(studentIds)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "File ID and an array of Student IDs are required." 
+      return res.status(400).json({
+        success: false,
+        message: "File ID and an array of Student IDs are required.",
       });
     }
 
     const updatedFile = await File.findByIdAndUpdate(
       id,
       { $addToSet: { students: { $each: studentIds } } },
-      { new: true }
+      { new: true },
     ).select("students");
 
     if (!updatedFile) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "File not found." 
+      return res.status(404).json({
+        success: false,
+        message: "File not found.",
       });
     }
 
     res.status(200).json({
       success: true,
       message: `${studentIds.length} students' access updated successfully.`,
-      totalAuthorized: updatedFile.students.length
+      totalAuthorized: updatedFile.students.length,
     });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
@@ -437,5 +437,5 @@ module.exports = {
   fileAccessStudentByFileId,
   getAllStudentsWithFileAccess,
   removeStudentAccess,
-  updateStudentFileAccess
+  updateStudentFileAccess,
 };
