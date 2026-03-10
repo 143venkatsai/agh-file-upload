@@ -28,7 +28,7 @@ router.delete("/:id", deleteFile);
 
 router.post("/add-student", addStudent)
 router.get("/students/access/:id", fileAccessStudentByFileId)
-router.get("/students/:id", getAllStudentsWithFileAccess)
+router.get("/:id/students", getAllStudentsWithFileAccess)
 
 
 module.exports = router;

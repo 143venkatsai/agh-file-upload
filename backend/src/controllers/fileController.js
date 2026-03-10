@@ -1,6 +1,7 @@
 const File = require("../models/File");
 const cloudinary = require("../config/cloudinary");
 const Students = require("../models/Students")
+const mongoose = require("mongoose");
 
 const deleteCloudinaryAsset = async (publicId, options = {}) => {
   if (!publicId) return;
@@ -119,7 +120,7 @@ const finalizeFile = async (req, res) => {
     if (!existingFile) {
       return res.status(404).json({ message: "File not found for finalize" });
     }
-
+    
     const processedPages = await Promise.all(
       pages.map(async (page) => {
         if (!page?.imageData || typeof page.imageData !== "string") {
@@ -355,6 +356,45 @@ const getAllStudentsWithFileAccess = async (req, res) => {
   }
 };
 
+
+const removeStudentAccess = async (req, res) => {
+  try {
+    const { fileId, studentId } = req.body;
+
+    if (!fileId || !studentId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "File ID and Student ID are required." 
+      });
+    }
+
+    // $pull removes the studentId from the students array if it exists
+    const updatedFile = await File.findByIdAndUpdate(
+      fileId,
+      { $pull: { students: studentId } },
+      { new: true }
+    );
+
+    if (!updatedFile) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "File not found." 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Access removed successfully.",
+      // Optionally return the updated count or list
+      remainingAccessCount: updatedFile.students.length
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
 
 
 module.exports = {
