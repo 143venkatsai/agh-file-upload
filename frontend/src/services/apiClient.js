@@ -1,7 +1,10 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
-export const apiRequest = async (path, { method = "GET", query, body } = {}) => {
+export const apiRequest = async (
+  path,
+  { method = "GET", query, body } = {},
+) => {
   const url = new URL(`${API_BASE_URL}${path}`);
   if (query) {
     Object.entries(query).forEach(([key, value]) => {
@@ -38,9 +41,21 @@ export const deleteFileApi = (id) =>
   apiRequest(`/files/${id}`, { method: "DELETE" });
 
 // Students API
-export const getFileAccessStudentsApi = ({ fileId, search, page = 1, limit = 10 }) =>
-  apiRequest(`/files/students/access/${fileId}`, { query: { search, page, limit } });
-export const getAllStudentsForFileApi = ({ fileId, search, page = 1, limit = 10 }) =>
+export const getFileAccessStudentsApi = ({
+  fileId,
+  search,
+  page = 1,
+  limit = 10,
+}) =>
+  apiRequest(`/files/students/access/${fileId}`, {
+    query: { search, page, limit },
+  });
+export const getAllStudentsForFileApi = ({
+  fileId,
+  search,
+  page = 1,
+  limit = 10,
+}) =>
   apiRequest(`/files/${fileId}/students`, { query: { search, page, limit } });
 export const updateFileStudentsAccessApi = ({ fileId, studentIds }) =>
   apiRequest(`/files/students/access/${fileId}`, {
