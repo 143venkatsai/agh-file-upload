@@ -25,6 +25,7 @@ import { toast } from "react-toastify";
 import {
   getAllStudentsForFileApi,
   getFileAccessStudentsApi,
+  removeStudentAccessApi,
   updateFileStudentsAccessApi,
 } from "../../services/apiClient";
 import { ArrowLeft } from "lucide-react";
@@ -40,6 +41,7 @@ const AccessTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [removingStudentId, setRemovingStudentId] = useState("");
   const [error, setError] = useState("");
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [pagination, setPagination] = useState({
@@ -143,13 +145,29 @@ const AccessTable = () => {
       )
     : 0;
 
-  const handleRemove = (studentId) => {
-    setRows((prevRows) => prevRows.filter((row) => row.id !== studentId));
-    setSelectedStudents((prev) => {
-      const next = new Set(prev);
-      next.delete(studentId);
-      return next;
-    });
+  const handleRemove = async (studentId) => {
+    if (!id || !studentId) return;
+
+    try {
+      setRemovingStudentId(studentId);
+      await removeStudentAccessApi({ fileId: id, studentId });
+      toast.success("Access removed successfully");
+
+      setRows((prevRows) => prevRows.filter((row) => row.id !== studentId));
+      setSelectedStudents((prev) => {
+        const next = new Set(prev);
+        next.delete(studentId);
+        return next;
+      });
+      setPagination((prev) => ({
+        ...prev,
+        totalStudents: Math.max(0, prev.totalStudents - 1),
+      }));
+    } catch (removeError) {
+      toast.error(removeError.message || "Failed to remove access");
+    } finally {
+      setRemovingStudentId("");
+    }
   };
 
   const toggleStudent = (studentId) => {
@@ -191,7 +209,6 @@ const AccessTable = () => {
     }
   };
 
-  console.log(currentPage);
   const navigate = useNavigate();
 
   return (
@@ -262,8 +279,11 @@ const AccessTable = () => {
                       <RemoveButton
                         type="button"
                         onClick={() => handleRemove(row.id)}
+                        disabled={removingStudentId === row.id}
                       >
-                        REMOVE ACCESS
+                        {removingStudentId === row.id
+                          ? "REMOVING..."
+                          : "REMOVE ACCESS"}
                       </RemoveButton>
                     </Td>
                   )}

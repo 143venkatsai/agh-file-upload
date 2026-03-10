@@ -62,3 +62,9 @@ export const updateFileStudentsAccessApi = ({ fileId, studentIds }) =>
     method: "POST",
     body: { studentIds },
   });
+
+export const removeStudentAccessApi = ({ fileId, studentId }) =>
+  apiRequest(`/files/${fileId}/remove-access`, {
+    method: "PATCH",
+    body: { studentId },
+  });

@@ -306,6 +306,7 @@ const getAllStudentsWithFileAccess = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
+    console.log(id);
 
     const targetFile = await File.findById(id).select("students");
     if (!targetFile) {
@@ -406,15 +407,25 @@ const removeStudentAccess = async (req, res) => {
     const { id } = req.params;
     const { studentId } = req.body;
 
-    if (!fileId || !studentId) {
+    if (!id || !studentId) {
       return res.status(400).json({
         success: false,
         message: "File ID and Student ID are required.",
       });
     }
 
+    if (
+      !mongoose.Types.ObjectId.isValid(id) ||
+      !mongoose.Types.ObjectId.isValid(studentId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid file ID or student ID format.",
+      });
+    }
+
     const updatedFile = await File.findByIdAndUpdate(
-      fileId,
+      id,
       { $pull: { students: studentId } },
       { new: true },
     );
