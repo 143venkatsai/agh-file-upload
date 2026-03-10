@@ -68,7 +68,6 @@ const burnWatermarkToCanvas = (baseImageUrl, watermark) => {
       canvas.height = baseImg.height;
       ctx.drawImage(baseImg, 0, 0);
 
-      // Always export as base64 so backend never receives blob: URLs.
       if (!watermark || !logoImg) {
         return resolve(canvas.toDataURL("image/jpeg", OUTPUT_IMAGE_QUALITY));
       }

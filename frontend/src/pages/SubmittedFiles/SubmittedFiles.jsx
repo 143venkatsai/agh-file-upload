@@ -57,7 +57,6 @@ const SubmittedFiles = () => {
           id: file._id,
           name: file.title || "Untitled file",
           meta: formatModifiedText(file.updatedAt),
-          isDummy: false,
         }));
         setItems(mapped);
       } catch (fetchError) {
@@ -72,12 +71,6 @@ const SubmittedFiles = () => {
   }, []);
 
   const handleRemove = async (item) => {
-    if (item.isDummy) {
-      setItems((prevItems) =>
-        prevItems.filter((entry) => entry.id !== item.id),
-      );
-      return;
-    }
 
     try {
       setDeletingId(item.id);
