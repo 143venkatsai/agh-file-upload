@@ -45,10 +45,10 @@ const fileSchema = new mongoose.Schema(
       default: ""
     },
 
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
-    },
+    // adminUser: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "AdminUser"
+    // },
 
     pages: [pageSchema]
     ,
