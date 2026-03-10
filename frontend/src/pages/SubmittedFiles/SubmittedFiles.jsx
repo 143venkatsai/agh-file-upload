@@ -48,8 +48,9 @@ const SubmittedFiles = () => {
           throw new Error(`Failed to fetch files (${response.status})`);
         }
         const result = await response.json();
-        const apiFiles = Array.isArray(result?.data) ? result.data : [];
-
+        const apiFiles = Array.isArray(result?.files) ? result.files : [];
+        setItems(apiFiles)
+        
         if (!apiFiles.length) {
           setItems([]);
           return;
@@ -64,7 +65,7 @@ const SubmittedFiles = () => {
         setItems(mapped);
       } catch (fetchError) {
         setError(fetchError.message || "Failed to load files.");
-        setItems(DUMMY_FILES);
+        setItems([]);
       } finally {
         setIsLoading(false);
       }

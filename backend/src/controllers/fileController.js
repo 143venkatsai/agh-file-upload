@@ -2,6 +2,38 @@ const File = require("../models/File");
 const cloudinary = require("../config/cloudinary");
 const mongoose = require("mongoose");
 
+const deleteCloudinaryAsset = async (publicId, options = {}) => {
+  if (!publicId) return;
+
+  const result = await cloudinary.uploader.destroy(publicId, options);
+  if (result?.result === "ok" || result?.result === "not found") {
+    return;
+  }
+
+  throw new Error(`Failed to delete Cloudinary asset: ${publicId}`);
+};
+
+const deleteRelatedCloudinaryFiles = async (file) => {
+  const deletionTasks = [];
+
+  if (file?.pdfPublicId) {
+    deletionTasks.push(
+      deleteCloudinaryAsset(file.pdfPublicId, { resource_type: "raw" }),
+    );
+  }
+
+  if (Array.isArray(file?.pages) && file.pages.length) {
+    deletionTasks.push(
+      ...file.pages
+        .map((page) => page?.publicId)
+        .filter(Boolean)
+        .map((publicId) => deleteCloudinaryAsset(publicId)),
+    );
+  }
+
+  await Promise.all(deletionTasks);
+};
+
 const uploadPdf = async (req, res) => {
   try {
     const file = req.file || req.files?.pdf?.[0] || req.files?.file?.[0];
@@ -130,24 +162,13 @@ const finalizeFile = async (req, res) => {
   }
 };
 
-// const getPdf = async (req, res) => {
-//   try {
-//     const data = await File.find({}).sort({ updatedAt: -1 });
-//     res
-//       .status(200)
-//       .json({ data, message: "Data fetch successfully", success: true });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
 const getFiles = async (req, res) => {
   try {
     const files = await File.find({
       success: true,
       "pages.0": { $exists: true } 
     }).sort({ createdAt: -1 });
-    res.status(200).json(files);
+    res.status(200).json({files, message: "Files fetch successfully"});
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -155,28 +176,23 @@ const getFiles = async (req, res) => {
 
 const deleteFile = async (req, res) => {
   try {
-    const file = await File.findById(req.params.id);
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid fileId format" });
+    }
+
+    const file = await File.findById(id);
 
     if (!file) {
       return res.status(404).json({ message: "File not found" });
     }
 
-    await cloudinary.uploader.destroy(file.pdfPublicId, {
-      resource_type: "raw",
-    });
+    await deleteRelatedCloudinaryFiles(file);
 
-    if (Array.isArray(file.pages) && file.pages.length) {
-      await Promise.all(
-        file.pages
-          .filter((page) => page?.publicId)
-          .map((page) => cloudinary.uploader.destroy(page.publicId)),
-      );
-    }
-
-    await File.findByIdAndDelete(req.params.id);
+    await File.findByIdAndDelete(id);
 
     res.json({
-      message: "File deleted successfully",
+      message: "File deleted successfully", 
     });
   } catch (error) {
     res.status(500).json({
