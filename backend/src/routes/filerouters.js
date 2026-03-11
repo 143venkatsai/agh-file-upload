@@ -9,7 +9,7 @@ const {
   getFiles,
   deleteFile,
   addStudent,
-  fileAccessStudentByFileId,
+  fileAccessStudentsByFileId,
   getAllStudentsWithFileAccess,
   removeStudentAccess,
   updateFileStudentsAccess,
@@ -29,8 +29,8 @@ router.get("/get-pdf", getFiles);
 router.delete("/:id", deleteFile);
 
 router.post("/add-student", addStudent)
-router.get("/students/access/:id", fileAccessStudentByFileId)
-router.post("/students/access/:id", updateFileStudentsAccess)
+router.get("/students/access/:id", fileAccessStudentsByFileId)
+router.put("/students/access/:id", updateFileStudentsAccess)
 router.get("/:id/students", getAllStudentsWithFileAccess)
 router.patch("/:id/remove-access",removeStudentAccess)
 

@@ -1,69 +1,107 @@
 export const API_BASE_URL = "http://localhost:3000/api";
 
-export const apiRequest = async (
-  path,
-  { method = "GET", query, body } = {},
-) => {
-  const url = new URL(`${API_BASE_URL}${path}`);
-  if (query) {
-    Object.entries(query).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.set(key, String(value));
-      }
-    });
-  }
-
-  const options = { method, headers: {} };
-  if (body instanceof FormData) {
-    options.body = body;
-  } else if (body !== undefined) {
-    options.headers["Content-Type"] = "application/json";
-    options.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(url.toString(), options);
-  const data = await response.json().catch(() => ({}));
+//Files API
+export const uploadFileApi = async (formData) => {
+  const response = await fetch(`${API_BASE_URL}/files/upload`, {
+    method: "POST",
+    body: formData,
+  });
   if (!response.ok) {
-    throw new Error(data?.message || `Request failed (${response.status})`);
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || `Upload failed (${response.status})`);
   }
+  return response.json();
+};
+
+export const finalizeFileApi = async (payload) => {
+  const response = await fetch(`${API_BASE_URL}/files/finalize`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Finalize failed");
   return data;
 };
 
-// Files API
-export const uploadFileApi = (formData) =>
-  apiRequest("/files/upload", { method: "POST", body: formData });
-export const finalizeFileApi = (payload) =>
-  apiRequest("/files/finalize", { method: "PUT", body: payload });
-export const getFilesApi = () => apiRequest("/files/get-pdf");
-export const getFileByIdApi = (id) => apiRequest(`/files/get-pdf/${id}`);
-export const deleteFileApi = (id) =>
-  apiRequest(`/files/${id}`, { method: "DELETE" });
+export const getFilesApi = async () => {
+  const response = await fetch(`${API_BASE_URL}/files/get-pdf`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Fetch failed");
+  return data;
+};
 
-// Students API
-export const getFileAccessStudentsApi = ({
+export const getFileByIdApi = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/files/get-pdf/${id}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Fetch by ID failed");
+  return data;
+};
+
+export const deleteFileApi = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/files/${id}`, {
+    method: "DELETE",
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Delete failed");
+  return data;
+};
+
+//Students API
+
+export const getAllStudentsForFileApi = async ({ fileId, search, page = 1 }) => {
+  const url = new URL(`${API_BASE_URL}/files/${fileId}/students`);
+  if (search) url.searchParams.set("search", search);
+  url.searchParams.set("page", String(page));
+
+  const response = await fetch(url.toString());
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Failed to fetch students");
+  return data;
+};
+
+export const getFileAccessStudentsApi = async ({
   fileId,
   search,
   page = 1,
   limit = 10,
-}) =>
-  apiRequest(`/files/students/access/${fileId}`, {
-    query: { search, page, limit },
-  });
-export const getAllStudentsForFileApi = ({
-  fileId,
-  search,
-  page = 1,
-  limit = 10,
-}) =>
-  apiRequest(`/files/${fileId}/students`, { query: { search, page, limit } });
-export const updateFileStudentsAccessApi = ({ fileId, studentIds }) =>
-  apiRequest(`/files/students/access/${fileId}`, {
-    method: "POST",
-    body: { studentIds },
-  });
+}) => {
+  const url = new URL(`${API_BASE_URL}/files/students/access/${fileId}`);
+  if (search) url.searchParams.set("search", search);
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("limit", String(limit));
 
-export const removeStudentAccessApi = ({ fileId, studentId }) =>
-  apiRequest(`/files/${fileId}/remove-access`, {
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await response.json().catch(() => ({}));
+  
+  if (!response.ok) {
+    throw new Error(data.message || `Failed to fetch authorized students (${response.status})`);
+  }
+
+  return data;
+};
+
+export const updateFileStudentsAccessApi = async ({ fileId, studentIds }) => {
+  const response = await fetch(`${API_BASE_URL}/files/students/access/${fileId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentIds }), 
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Failed to add access");
+  return data;
+};
+
+export const removeStudentAccessApi = async ({ fileId, studentId }) => {
+  const response = await fetch(`${API_BASE_URL}/files/${fileId}/remove-access`, {
     method: "PATCH",
-    body: { studentId },
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId }),
   });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Failed to remove access");
+  return data;
+};

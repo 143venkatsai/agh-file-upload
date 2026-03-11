@@ -236,7 +236,7 @@ const addStudent = async (req, res) => {
   }
 };
 
-const fileAccessStudentByFileId = async (req, res) => {
+const fileAccessStudentsByFileId = async (req, res) => {
   try {
     const { id } = req.params;
     const { search } = req.query;
@@ -306,7 +306,6 @@ const getAllStudentsWithFileAccess = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = 10;
     const skip = (page - 1) * limit;
-    console.log(id);
 
     const targetFile = await File.findById(id).select("students");
     if (!targetFile) {
@@ -404,7 +403,6 @@ const updateFileStudentsAccess = async (req, res) => {
   try {
     const { id } = req.params;
     const { studentIds } = req.body;
-
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -456,8 +454,8 @@ module.exports = {
   getFiles,
   deleteFile,
   addStudent,
-  fileAccessStudentByFileId,
+  fileAccessStudentsByFileId,
   getAllStudentsWithFileAccess,
   removeStudentAccess,
-  updateFileStudentsAccess
+  updateFileStudentsAccess,
 };

@@ -218,7 +218,7 @@ const AccessTable = () => {
         <Toolbar>
           <SearchInput
             type="search"
-            placeholder="Search records..."
+            placeholder="Search by Name, Email, College....."
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
