@@ -24,8 +24,10 @@ export const finalizeFileApi = async (payload) => {
   return data;
 };
 
-export const getFilesApi = async () => {
-  const response = await fetch(`${API_BASE_URL}/files/get-pdf`);
+export const getFilesApi = async ({ page }) => {
+  const url = new URL(`${API_BASE_URL}/files/get-pdf`);
+  url.searchParams.set("page", String(page));
+  const response = await fetch(url.toString());
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message || "Fetch failed");
   return data;
@@ -49,7 +51,11 @@ export const deleteFileApi = async (id) => {
 
 //Students API
 
-export const getAllStudentsForFileApi = async ({ fileId, search, page = 1 }) => {
+export const getAllStudentsForFileApi = async ({
+  fileId,
+  search,
+  page = 1,
+}) => {
   const url = new URL(`${API_BASE_URL}/files/${fileId}/students`);
   if (search) url.searchParams.set("search", search);
   url.searchParams.set("page", String(page));
@@ -76,31 +82,40 @@ export const getFileAccessStudentsApi = async ({
     headers: { "Content-Type": "application/json" },
   });
   const data = await response.json().catch(() => ({}));
-  
+
   if (!response.ok) {
-    throw new Error(data.message || `Failed to fetch authorized students (${response.status})`);
+    throw new Error(
+      data.message ||
+        `Failed to fetch authorized students (${response.status})`,
+    );
   }
 
   return data;
 };
 
 export const updateFileStudentsAccessApi = async ({ fileId, studentIds }) => {
-  const response = await fetch(`${API_BASE_URL}/files/students/access/${fileId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentIds }), 
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/files/students/access/${fileId}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentIds }),
+    },
+  );
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message || "Failed to add access");
   return data;
 };
 
 export const removeStudentAccessApi = async ({ fileId, studentId }) => {
-  const response = await fetch(`${API_BASE_URL}/files/${fileId}/remove-access`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentId }),
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/files/${fileId}/remove-access`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentId }),
+    },
+  );
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message || "Failed to remove access");
   return data;
