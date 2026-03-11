@@ -179,3 +179,37 @@ export const CenterNoFilesLoader = styled.div`
     font-weight: bold;
   }
 `;
+
+export const Footer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const ResultText = styled.p`
+  margin: 0;
+  color: ${(props) => props.theme.text.secondary};
+  font-size: 14px;
+`;
+
+export const Pagination = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const PageButton = styled.button`
+  min-width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid ${(props) => props.theme.border.primary};
+  background: ${(props) =>
+    props.$active ? props.theme.primary.base : props.theme.body.primary.base};
+  color: ${(props) => (props.$active ? "#ffffff" : props.theme.text.primary)};
+  font-size: 13px;
+  font-weight: 600;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+`;

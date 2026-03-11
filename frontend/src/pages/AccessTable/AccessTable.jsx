@@ -207,8 +207,6 @@
 //     }
 //   };
 
-
-
 //   return (
 //     <Page>
 //       <Container>
@@ -344,7 +342,7 @@
 
 // export default AccessTable;
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
@@ -386,23 +384,63 @@ const AccessTable = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const isAddMode = searchParams.get("mode") === "add";
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
 
+  useEffect(() => {
+    if (!isAddMode || !id) return;
+
+    let isMounted = true;
+
+    const loadAlreadyAuthorizedStudents = async () => {
+      try {
+        const payload = await getFileAccessStudentsApi({
+          fileId: id,
+          search: "",
+          page: 1,
+          limit: 1000,
+        });
+
+        if (!isMounted) return;
+        const authorizedIds = (payload?.data?.students || []).map(
+          (student) => student._id,
+        );
+        setSelectedStudents(new Set(authorizedIds));
+      } catch (err) {
+        toast.error(
+          err.message || "Failed to load existing access for selected file.",
+        );
+      }
+    };
+
+    loadAlreadyAuthorizedStudents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAddMode, id]);
+
   const { data, isLoading, isPlaceholderData, error } = useQuery({
     queryKey: ["students", id, isAddMode, query, currentPage],
     queryFn: () =>
       isAddMode
-        ? getAllStudentsForFileApi({ fileId: id, search: query.trim(), page: currentPage, limit: PAGE_LIMIT })
-        : getFileAccessStudentsApi({ fileId: id, search: query.trim(), page: currentPage, limit: PAGE_LIMIT }),
+        ? getAllStudentsForFileApi({
+            fileId: id,
+            search: query.trim(),
+            page: currentPage,
+          })
+        : getFileAccessStudentsApi({
+            fileId: id,
+            search: query.trim(),
+            page: currentPage,
+          }),
     enabled: !!id,
-    placeholderData: (previousData) => previousData, 
+    placeholderData: (previousData) => previousData,
     staleTime: 5000,
   });
-
 
   const removeMutation = useMutation({
     mutationFn: removeStudentAccessApi,
@@ -423,7 +461,6 @@ const AccessTable = () => {
     onError: (err) => toast.error(err.message || "Failed to update access"),
   });
 
-
   const rows = useMemo(() => {
     const students = data?.data?.students || [];
     return students.map((student) => ({
@@ -437,7 +474,10 @@ const AccessTable = () => {
     }));
   }, [data]);
 
-  const pagination = data?.data?.pagination || { totalPages: 1, totalStudents: 0 };
+  const pagination = data?.data?.pagination || {
+    totalPages: 1,
+    totalStudents: 0,
+  };
 
   const toggleStudent = (studentId) => {
     setSelectedStudents((prev) => {
@@ -455,8 +495,13 @@ const AccessTable = () => {
     setSelectedStudents(new Set());
   };
 
-  const startIndex = pagination.totalStudents ? (currentPage - 1) * PAGE_LIMIT + 1 : 0;
-  const endIndex = Math.min(startIndex + rows.length - 1, pagination.totalStudents);
+  const startIndex = pagination.totalStudents
+    ? (currentPage - 1) * PAGE_LIMIT + 1
+    : 0;
+  const endIndex = Math.min(
+    startIndex + rows.length - 1,
+    pagination.totalStudents,
+  );
 
   return (
     <Page>
@@ -467,7 +512,7 @@ const AccessTable = () => {
 
         <Toolbar>
           <SearchInput
-            placeholder="Search..."
+            placeholder="Search by name, email, college..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -479,8 +524,13 @@ const AccessTable = () => {
               Add Students
             </EditAccessButton>
           ) : (
-            <EditAccessButton 
-              onClick={() => saveMutation.mutate({ fileId: id, studentIds: Array.from(selectedStudents) })}
+            <EditAccessButton
+              onClick={() =>
+                saveMutation.mutate({
+                  fileId: id,
+                  studentIds: Array.from(selectedStudents),
+                })
+              }
               disabled={saveMutation.isPending}
             >
               {saveMutation.isPending ? "Saving..." : "Save Changes"}
@@ -509,7 +559,7 @@ const AccessTable = () => {
                     <TdNew>
                       <CheckboxInput
                         type="checkbox"
-                        checked={selectedStudents.has(row.id) || row.hasAccess}
+                        checked={selectedStudents.has(row.id)}
                         onChange={() => toggleStudent(row.id)}
                       />
                       {row.name}
@@ -518,17 +568,25 @@ const AccessTable = () => {
                     <Td>{row.name}</Td>
                   )}
                   <Td>{row.collegeName}</Td>
-                  <Td><AccessType>{row.level}</AccessType></Td>
+                  <Td>
+                    <AccessType>{row.level}</AccessType>
+                  </Td>
                   <Td>{row.yearPassing}</Td>
                   <Td>{row.department}</Td>
                   {!isAddMode && (
                     <Td>
                       <RemoveButton
-                        onClick={() => removeMutation.mutate({ fileId: id, studentId: row.id })}
+                        onClick={() =>
+                          removeMutation.mutate({
+                            fileId: id,
+                            studentId: row.id,
+                          })
+                        }
                         disabled={removeMutation.isPending}
                       >
-                        {removeMutation.isPending && removeMutation.variables?.studentId === row.id 
-                          ? "REMOVING..." 
+                        {removeMutation.isPending &&
+                        removeMutation.variables?.studentId === row.id
+                          ? "REMOVING..."
                           : "REMOVE ACCESS"}
                       </RemoveButton>
                     </Td>
@@ -538,33 +596,46 @@ const AccessTable = () => {
             </tbody>
           </Table>
 
-          {isLoading && <EmptyText><Loader2 size={20} className="animate-spin" /> Loading...</EmptyText>}
+          {isLoading && (
+            <EmptyText>
+              <Loader2 size={20} className="animate-spin" /> Loading...
+            </EmptyText>
+          )}
           {error && <EmptyText color="red">{error.message}</EmptyText>}
-          {!isLoading && rows.length === 0 && <EmptyText>No records found.</EmptyText>}
+          {!isLoading && rows.length === 0 && (
+            <EmptyText>No records found.</EmptyText>
+          )}
         </TableWrap>
 
         <Footer>
           <ResultText>
-            Showing {startIndex} to {endIndex} of {pagination.totalStudents} results
+            Showing {startIndex} to {endIndex} of {pagination.totalStudents}{" "}
+            results
           </ResultText>
           <Pagination>
-            <PageButton 
+            <PageButton
               disabled={!pagination.hasPrevPage || isPlaceholderData}
-              onClick={() => setCurrentPage(p => p - 1)}
-            >{"<"}</PageButton>
-            
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              {"<"}
+            </PageButton>
+
             {[...Array(pagination.totalPages)].map((_, i) => (
               <PageButton
                 key={i}
                 $active={currentPage === i + 1}
                 onClick={() => setCurrentPage(i + 1)}
-              >{i + 1}</PageButton>
+              >
+                {i + 1}
+              </PageButton>
             ))}
 
-            <PageButton 
+            <PageButton
               disabled={!pagination.hasNextPage || isPlaceholderData}
-              onClick={() => setCurrentPage(p => p + 1)}
-            >{">"}</PageButton>
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              {">"}
+            </PageButton>
           </Pagination>
         </Footer>
       </Container>
