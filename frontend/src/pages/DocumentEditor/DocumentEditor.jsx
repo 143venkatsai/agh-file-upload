@@ -295,18 +295,34 @@ const DocumentEditor = () => {
           <Title>Watermark</Title>
           <WatermarkActions>
             <WatermarkButton as="label" htmlFor="w-upload">Upload Logo</WatermarkButton>
-            <WatermarkInput id="w-upload" type="file" onChange={async (e) => {
+            <WatermarkInput id="w-upload" type="file" accept="image/*" onChange={async (e) => {
               const f = e.target.files?.[0];
               if (f) {
+                if (!f.type.startsWith("image/")) {
+                  toast.error("Please upload an image file for watermark.");
+                  e.target.value = "";
+                  return;
+                }
+                if (watermarkObjectUrlRef.current) {
+                  URL.revokeObjectURL(watermarkObjectUrlRef.current);
+                }
+                const objectUrl = URL.createObjectURL(f);
+                watermarkObjectUrlRef.current = objectUrl;
                 setWatermarkLogoDataUrl(await readFileAsDataUrl(f));
-                setWatermarkLogoPreviewUrl(URL.createObjectURL(f));
+                setWatermarkLogoPreviewUrl(objectUrl);
                 setWatermarkLogoName(f.name);
               }
             }} />
+            {watermarkLogoName && <WatermarkMeta>{watermarkLogoName}</WatermarkMeta>}
             {watermarkLogoPreviewUrl && (
               <WatermarkButton type="button" onClick={() => {
+                if (watermarkObjectUrlRef.current) {
+                  URL.revokeObjectURL(watermarkObjectUrlRef.current);
+                  watermarkObjectUrlRef.current = null;
+                }
                 setWatermarkLogoPreviewUrl("");
                 setWatermarkLogoDataUrl("");
+                setWatermarkLogoName("");
               }}>Remove</WatermarkButton>
             )}
           </WatermarkActions>
