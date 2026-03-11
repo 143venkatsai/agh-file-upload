@@ -303,7 +303,7 @@ const AccessTable = () => {
           )}
         </TableWrap>
 
-        <Footer>
+        {rows.length!==0 && <Footer>
           <ResultText>
             Showing {startIndex} to {endIndex} of {pagination.totalStudents}{" "}
             results
@@ -339,7 +339,7 @@ const AccessTable = () => {
               {">"}
             </PageButton>
           </Pagination>
-        </Footer>
+        </Footer>}
       </Container>
     </Page>
   );

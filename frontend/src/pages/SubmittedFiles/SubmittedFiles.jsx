@@ -193,9 +193,9 @@ const SubmittedFiles = () => {
 
                 <RemoveButton
                   onClick={() => handleRemove(item.id)}
-                  disabled={deleteMutation.isPending}
+                  disabled={deleteMutation.isPending && deleteMutation.variables === item.id}
                 >
-                  {deleteMutation.isPending ? "Removing..." : "Remove"}
+                  {deleteMutation.isPending && deleteMutation.variables === item.id ? "Removing..." : "Remove"}
                 </RemoveButton>
               </ActionArea>
             </FileCard>
@@ -203,44 +203,44 @@ const SubmittedFiles = () => {
 
         {error && <EmptyText>{error.message}</EmptyText>}
 
-        <Footer>
-          <ResultText>
-            Showing {startIndex} to {endIndex} of {pagination.totalFiles}{" "}
-            results
-          </ResultText>
+      {files.length !== 0 && <Footer>
+        <ResultText>
+          Showing {startIndex} to {endIndex} of {pagination.totalFiles}{" "}
+          results
+        </ResultText>
 
-          <Pagination>
+        <Pagination>
+          <PageButton
+            disabled={!pagination.hasPrevPage || isPlaceholderData}
+            onClick={() =>
+              setCurrentPage((page) => Math.max(1, page - 1))
+            }
+          >
+            {"<"}
+          </PageButton>
+
+          {visiblePageNumbers.map((pageNumber) => (
             <PageButton
-              disabled={!pagination.hasPrevPage || isPlaceholderData}
-              onClick={() =>
-                setCurrentPage((page) => Math.max(1, page - 1))
-              }
+              key={pageNumber}
+              $active={Number(resolvedCurrentPage) === pageNumber}
+              onClick={() => setCurrentPage(pageNumber)}
             >
-              {"<"}
+              {pageNumber}
             </PageButton>
+          ))}
 
-            {visiblePageNumbers.map((pageNumber) => (
-              <PageButton
-                key={pageNumber}
-                $active={Number(resolvedCurrentPage) === pageNumber}
-                onClick={() => setCurrentPage(pageNumber)}
-              >
-                {pageNumber}
-              </PageButton>
-            ))}
-
-            <PageButton
-              disabled={!pagination.hasNextPage || isPlaceholderData}
-              onClick={() =>
-                setCurrentPage((page) =>
-                  Math.min(pagination.totalPages || 1, page + 1),
-                )
-              }
-            >
-              {">"}
-            </PageButton>
-          </Pagination>
-        </Footer>
+          <PageButton
+            disabled={!pagination.hasNextPage || isPlaceholderData}
+            onClick={() =>
+              setCurrentPage((page) =>
+                Math.min(pagination.totalPages || 1, page + 1),
+              )
+            }
+          >
+            {">"}
+          </PageButton>
+        </Pagination>
+      </Footer>}
       </Container>
     </Page>
   );
