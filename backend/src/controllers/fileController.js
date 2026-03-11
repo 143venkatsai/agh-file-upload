@@ -164,11 +164,34 @@ const finalizeFile = async (req, res) => {
 };
 
 const getFiles = async (req, res) => {
+  const page = req.query.page || 1
+  const limit = 10;
+  const skip = (page - 1) * limit;
   try {
-    const files = await File.find({
+    const filter = {
+    success: true,
+    "pages.0": { $exists: true },
+  };
+   const totalFiles = await File.countDocuments(filter);
+
+    const files = await File.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPages = Math.ceil(totalFiles / limit);
+    res.status(200).json({
       success: true,
-      "pages.0": { $exists: true },
-    }).sort({ createdAt: -1 });
+      message: "Files fetched successfully",
+      files,
+      pagination: {
+        totalFiles,
+        totalPages,
+        currentPage: page,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
     res.status(200).json({ files, message: "Files fetch successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
